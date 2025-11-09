@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Panel Admin</title>
+</head>
+<body>
+    <h1>Panel de Administrador</h1>
+    <button onclick="cerrarSesion()">Cerrar Sesión</button>
+    
+    <div id="clientes"></div>
+    
+    <script>
+        // Verificar acceso
+        window.onload = function() {
+            const rol = localStorage.getItem('rol');
+            if (rol !== 'ADMINISTRADOR') {
+                alert('Acceso denegado');
+                window.location.href = '../login.html';
+                return;
+            }
+            cargarClientes();
+        }
+        
+        async function cargarClientes() {
+            const token = localStorage.getItem('token');
+            
+            const response = await fetch('http://localhost:8080/api/admin/clientes', {
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+            
+            const clientes = await response.json();
+            
+            // Mostrar clientes en la página
+            document.getElementById('clientes').innerHTML = 
+                clientes.map(c => `
+                    <div>
+                        ${c.nombre} ${c.apellido} - ${c.email}
+                        <button onclick="eliminar('${c.dni}')">Eliminar</button>
+                    </div>
+                `).join('');
+        }
+        
+        function cerrarSesion() {
+            localStorage.clear();
+            window.location.href = '../login.html';
+        }
+    </script>
+</body>
+</html>

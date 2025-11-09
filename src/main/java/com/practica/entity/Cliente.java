@@ -27,9 +27,6 @@ public class Cliente {
     @Column(nullable = false, unique = true, length = 80)
     private String email;
     
-    @Column(nullable = false, length = 255)
-    private String contrasenia;
-    
     @Column(name = "FechaRegistro")
     private LocalDateTime fechaRegistro;
     
@@ -43,14 +40,13 @@ public class Cliente {
     
     // Constructor con parámetros
     public Cliente(String dni, String nombre, String apellido, String direccion, 
-            String telefono, String email, String contrasenia, Integer codigoPostal) {
+            String telefono, String email, Integer codigoPostal) {
         this.dni = dni;
         this.nombre = nombre;
         this.apellido = apellido;
         this.direccion = direccion;
         this.telefono = telefono;
         this.email = email;
-        this.contrasenia = contrasenia;
         this.codigoPostal = codigoPostal;
         this.fechaRegistro = LocalDateTime.now();
     }
@@ -96,13 +92,6 @@ public class Cliente {
     	}
     public void setEmail(String email) {
     	this.email = email;
-    	}
-    
-    public String getContrasenia() {
-    	return contrasenia;
-    	}
-    public void setContrasenia(String contrasenia) {
-    	this.contrasenia = contrasenia;
     	}
     
     public LocalDateTime getFechaRegistro() {

@@ -6,8 +6,7 @@ import com.practica.dao.RegisterDAO;
 import java.util.List;
 
 public interface ClienteService {
-    ClienteDAO registrar(RegisterDAO registerDAO);
-    String login(LoginDAO loginDAO);
+
     ClienteDAO obtenerPorDni(String dni);
     List<ClienteDAO> listarTodos();
     ClienteDAO actualizar(String dni, ClienteDAO clienteDAO);

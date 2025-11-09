@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - Panificadora</title>
+</head>
+<body>
+    <form id="loginForm">
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Contraseña" required>
+        <button type="submit">Iniciar Sesión</button>
+    </form>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        contrasenia: password
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Credenciales incorrectas');
+                }
+                
+                const data = await response.json();
+                
+                // Guardar en localStorage
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('rol', data.rol);
+                localStorage.setItem('email', data.email);
+                localStorage.setItem('dni', data.dni);
+                
+                // Redirigir según rol
+                switch(data.rol) {
+                    case 'ADMINISTRADOR':
+                        window.location.href = 'admin/dashboard.html';
+                        break;
+                    case 'CLIENTE':
+                        window.location.href = 'cliente/catalogo.html';
+                        break;
+                    case 'REPARTIDOR':
+                        window.location.href = 'repartidor/entregas.html';
+                        break;
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

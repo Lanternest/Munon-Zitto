@@ -1,19 +1,17 @@
 package com.practica.service.impl;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.practica.dao.ClienteDAO;
-import com.practica.dao.LoginDAO;
-import com.practica.dao.RegisterDAO;
 import com.practica.entity.Cliente;
-import com.practica.exception.BadRequestException;
 import com.practica.exception.ResourceNotFoundException;
 import com.practica.repository.ClienteRepository;
 import com.practica.service.ClienteService;
-import com.practica.util.Argon2Util;
 import com.practica.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ClienteServiceImpl implements ClienteService {
@@ -23,55 +21,6 @@ public class ClienteServiceImpl implements ClienteService {
     
     @Autowired
     private JwtUtil jwtUtil;
-    
-    @Override
-    public ClienteDAO registrar(RegisterDAO registerDAO) {
-        // Validar si ya existe el email
-        if (clienteRepository.existsByEmail(registerDAO.getEmail())) {
-            throw new BadRequestException("El email ya está registrado");
-        }
-        
-        // Validar si ya existe el DNI
-        if (clienteRepository.existsByDni(registerDAO.getDni())) {
-            throw new BadRequestException("El DNI ya está registrado");
-        }
-        
-        // Hashear contraseña
-        String hashedPassword = Argon2Util.hash(registerDAO.getContrasenia());
-        
-        // Crear entidad
-        Cliente cliente = new Cliente(
-        	    registerDAO.getDni(),
-        	    registerDAO.getNombre(),
-        	    registerDAO.getApellido(),
-        	    registerDAO.getDireccion(),
-        	    registerDAO.getTelefono(),
-        	    registerDAO.getEmail(),
-        	    hashedPassword,
-        	    registerDAO.getCodigoPostal()
-        	);
-        
-        // Guardar
-        Cliente savedCliente = clienteRepository.save(cliente);
-        
-        // Convertir a DAO
-        return convertirADAO(savedCliente);
-    }
-    
-    @Override
-    public String login(LoginDAO loginDAO) {
-        // Buscar cliente por email
-        Cliente cliente = clienteRepository.findByEmail(loginDAO.getEmail())
-            .orElseThrow(() -> new ResourceNotFoundException("Credenciales incorrectas"));
-        
-        // Verificar contraseña
-        if (!Argon2Util.verify(cliente.getContrasenia(), loginDAO.getContrasenia())) {
-            throw new BadRequestException("Credenciales incorrectas");
-        }
-        
-        // Generar token JWT
-        return jwtUtil.generateToken(cliente.getEmail());
-    }
     
     @Override
     public ClienteDAO obtenerPorDni(String dni) {

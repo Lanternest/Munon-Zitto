@@ -7,41 +7,44 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import com.practica.dao.ClienteDAO;
 import com.practica.service.ClienteService;
 
 @RestController
-@RequestMapping("/api/clientes")
+@RequestMapping("/api/admin")
 @CrossOrigin(origins = "*")
-public class ClienteController {
+public class AdminController {
     
     @Autowired
     private ClienteService clienteService;
     
-    // Obtener cliente por DNI
-    @GetMapping("/{dni}")
-    public ResponseEntity<ClienteDAO> obtenerPorDni(@PathVariable String dni) {
-        ClienteDAO cliente = clienteService.obtenerPorDni(dni);
-        return ResponseEntity.ok(cliente);
-    }
-    
     // Listar todos los clientes
-    @GetMapping
-    public ResponseEntity<List<ClienteDAO>> listarTodos() {
+    @GetMapping("/clientes")
+    public ResponseEntity<List<ClienteDAO>> listarClientes() {
         List<ClienteDAO> clientes = clienteService.listarTodos();
         return ResponseEntity.ok(clientes);
     }
     
+    // Ver cliente específico
+    @GetMapping("/clientes/{dni}")
+    public ResponseEntity<ClienteDAO> verCliente(@PathVariable String dni) {
+        ClienteDAO cliente = clienteService.obtenerPorDni(dni);
+        return ResponseEntity.ok(cliente);
+    }
+    
     // Actualizar cliente
-    @PutMapping("/{dni}")
-    public ResponseEntity<ClienteDAO> actualizar(@PathVariable String dni, @RequestBody ClienteDAO clienteDAO) {
-        ClienteDAO clienteActualizado = clienteService.actualizar(dni, clienteDAO);
-        return ResponseEntity.ok(clienteActualizado);
+    @PutMapping("/clientes/{dni}")
+    public ResponseEntity<ClienteDAO> actualizarCliente(
+            @PathVariable String dni, 
+            @RequestBody ClienteDAO clienteDAO) {
+        ClienteDAO actualizado = clienteService.actualizar(dni, clienteDAO);
+        return ResponseEntity.ok(actualizado);
     }
     
     // Eliminar cliente
-    @DeleteMapping("/{dni}")
-    public ResponseEntity<Map<String, String>> eliminar(@PathVariable String dni) {
+    @DeleteMapping("/clientes/{dni}")
+    public ResponseEntity<Map<String, String>> eliminarCliente(@PathVariable String dni) {
         clienteService.eliminar(dni);
         Map<String, String> response = new HashMap<>();
         response.put("message", "Cliente eliminado exitosamente");
