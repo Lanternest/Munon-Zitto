@@ -11,4 +11,5 @@ public interface ClienteService {
     List<ClienteDAO> listarTodos();
     ClienteDAO actualizar(String dni, ClienteDAO clienteDAO);
     void eliminar(String dni);
+    ClienteDAO registrar(ClienteDAO clienteDAO);
 }

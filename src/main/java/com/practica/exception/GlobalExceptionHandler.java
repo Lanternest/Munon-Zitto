@@ -26,8 +26,23 @@ public class GlobalExceptionHandler {
     
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
+        ex.printStackTrace(); // Log del error completo en consola
         Map<String, String> error = new HashMap<>();
-        error.put("error", "Error interno del servidor");
+        String errorMessage = ex.getMessage();
+        
+        // Si es un error de constraint de base de datos, dar un mensaje más claro
+        if (errorMessage != null && errorMessage.contains("foreign key constraint")) {
+            if (errorMessage.contains("CodigoPostal")) {
+                errorMessage = "El código postal no existe en la base de datos";
+            } else {
+                errorMessage = "Error de integridad referencial: " + errorMessage;
+            }
+        } else if (errorMessage != null && errorMessage.contains("ConstraintViolationException")) {
+            errorMessage = "Error de validación: " + errorMessage;
+        }
+        
+        error.put("error", errorMessage != null ? errorMessage : "Error interno del servidor");
+        error.put("details", ex.getClass().getSimpleName());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }

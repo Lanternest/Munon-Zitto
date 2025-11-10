@@ -47,4 +47,21 @@ public class ClienteController {
         response.put("message", "Cliente eliminado exitosamente");
         return ResponseEntity.ok(response);
     }
+    
+    // Registrar nuevo cliente
+    @PostMapping
+    public ResponseEntity<?> registrar(@RequestBody ClienteDAO clienteDAO) {
+        try {
+            ClienteDAO nuevoCliente = clienteService.registrar(clienteDAO);
+            return ResponseEntity.ok(nuevoCliente);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Error interno del sistema");
+            return ResponseEntity.status(500).body(response);
+        }
+    }
 }

@@ -276,31 +276,9 @@
               <h2>Usuarios Registrados</h2>
             </div>
             <div class="usuarios-lista">
-              <div class="usuario-item-admin">
-                <div class="usuario-avatar">JP</div>
-                <div class="usuario-info-admin">
-                  <h4>Juan Pérez</h4>
-                  <p>juan.perez@email.com</p>
-                </div>
-                <button class="btn-ver-mas" onclick="verUsuario(1)">Ver</button>
-              </div>
-
-              <div class="usuario-item-admin">
-                <div class="usuario-avatar">MG</div>
-                <div class="usuario-info-admin">
-                  <h4>María González</h4>
-                  <p>maria.gonzalez@email.com</p>
-                </div>
-                <button class="btn-ver-mas" onclick="verUsuario(2)">Ver</button>
-              </div>
-
-              <div class="usuario-item-admin">
-                <div class="usuario-avatar">CR</div>
-                <div class="usuario-info-admin">
-                  <h4>Carlos Rodríguez</h4>
-                  <p>carlos.r@email.com</p>
-                </div>
-                <button class="btn-ver-mas" onclick="verUsuario(3)">Ver</button>
+              <!-- Los usuarios se cargarán dinámicamente desde el backend -->
+              <div style="text-align: center; padding: 20px; color: #666;">
+                Cargando clientes...
               </div>
             </div>
           </div>
@@ -311,28 +289,9 @@
               <h2>Pedidos Recientes</h2>
             </div>
             <div class="pedidos-lista-admin">
-              <div class="pedido-item-admin">
-                <div class="pedido-info-admin">
-                  <h4>Pedido #024</h4>
-                  <p>Juan Pérez - $27.500</p>
-                </div>
-                <span class="estado pendiente">Pendiente</span>
-              </div>
-
-              <div class="pedido-item-admin">
-                <div class="pedido-info-admin">
-                  <h4>Pedido #023</h4>
-                  <p>María González - $15.800</p>
-                </div>
-                <span class="estado en-camino">En Camino</span>
-              </div>
-
-              <div class="pedido-item-admin">
-                <div class="pedido-info-admin">
-                  <h4>Pedido #022</h4>
-                  <p>Carlos Rodríguez - $42.300</p>
-                </div>
-                <span class="estado entregado">Entregado</span>
+              <!-- Los pedidos se cargarán dinámicamente desde el backend -->
+              <div style="text-align: center; padding: 20px; color: #666;">
+                Cargando pedidos...
               </div>
             </div>
           </div>
@@ -368,6 +327,42 @@
               <p class="facturacion-monto">$9.876.500</p>
               <span class="facturacion-pedidos">587 pedidos</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Gestión de Repartidores -->
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <h2>Gestión de Repartidores</h2>
+            <button class="btn-agregar" onclick="agregarRepartidor()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Agregar Repartidor
+            </button>
+          </div>
+          <div class="tabla-container">
+            <table class="tabla-admin">
+              <thead>
+                <tr>
+                  <th>DNI</th>
+                  <th>Nombre Completo</th>
+                  <th>Teléfono</th>
+                  <th>Patente</th>
+                  <th>Fecha Contratación</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaRepartidores">
+                <!-- Los repartidores se cargarán dinámicamente desde el backend -->
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 20px; color: #666;">
+                    Cargando repartidores...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 

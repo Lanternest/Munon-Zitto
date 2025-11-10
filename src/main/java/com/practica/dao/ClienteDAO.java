@@ -8,13 +8,14 @@ public class ClienteDAO {
     private String telefono;
     private String email;
     private Integer codigoPostal;
+    private String contrasenia;
     
     // Constructor vacío
     public ClienteDAO() {}
     
     // Constructor completo
     public ClienteDAO(String dni, String nombre, String apellido, String direccion, 
-            String telefono, String email, Integer codigoPostal) {
+            String telefono, String email, Integer codigoPostal, String contrasenia) {
         this.dni = dni;
         this.nombre = nombre;
         this.apellido = apellido;
@@ -22,6 +23,7 @@ public class ClienteDAO {
         this.telefono = telefono;
         this.email = email;
         this.codigoPostal = codigoPostal;
+        this.contrasenia = contrasenia;
     }
     
     // Getters y Setters
@@ -73,4 +75,11 @@ public class ClienteDAO {
     public void setCodigoPostal(Integer codigoPostal) {
     	this.codigoPostal = codigoPostal;
     	}
+    
+    public String getContrasenia() {
+        return contrasenia;
+    }
+    public void setContrasenia(String contrasenia) {
+        this.contrasenia = contrasenia;
+    }
 }

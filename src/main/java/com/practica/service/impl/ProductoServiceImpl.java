@@ -27,7 +27,8 @@ public class ProductoServiceImpl implements ProductoService {
             productoDAO.getPrecio(),
             productoDAO.getStock(),
             productoDAO.getDiasVencimiento(),
-            productoDAO.getCategoria()
+            productoDAO.getCategoria(),
+            productoDAO.getImagenUrl()
         );
         Producto saved = productoRepository.save(producto);
         return convertirADAO(saved);
@@ -65,6 +66,7 @@ public class ProductoServiceImpl implements ProductoService {
         producto.setStock(productoDAO.getStock());
         producto.setDiasVencimiento(productoDAO.getDiasVencimiento());
         producto.setCategoria(productoDAO.getCategoria());
+        producto.setImagenUrl(productoDAO.getImagenUrl());
         
         if (productoDAO.getEstado() != null) {
             producto.setEstado(Producto.EstadoProducto.valueOf(productoDAO.getEstado()));
@@ -107,7 +109,8 @@ public class ProductoServiceImpl implements ProductoService {
             producto.getFechaElaboracion(),
             producto.getDiasVencimiento(),
             producto.getEstado().name(),
-            producto.getCategoria()
+            producto.getCategoria(),
+            producto.getImagenUrl()
         );
     }
 }

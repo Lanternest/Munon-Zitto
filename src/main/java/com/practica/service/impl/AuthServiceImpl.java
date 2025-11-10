@@ -10,6 +10,7 @@ import com.practica.entity.Usuario;
 import com.practica.exception.BadRequestException;
 import com.practica.exception.ResourceNotFoundException;
 import com.practica.repository.ClienteRepository;
+import com.practica.repository.LocalidadRepository;
 import com.practica.repository.RepartidorRepository;
 import com.practica.repository.UsuarioRepository;
 import com.practica.service.AuthService;
@@ -24,6 +25,9 @@ public class AuthServiceImpl implements AuthService {
     
     @Autowired
     private ClienteRepository clienteRepository;
+    
+    @Autowired
+    private LocalidadRepository localidadRepository;
     
     @Autowired
     private RepartidorRepository repartidorRepository;
@@ -74,6 +78,11 @@ public class AuthServiceImpl implements AuthService {
         // Validar si ya existe el DNI
         if (clienteRepository.existsByDni(registerDAO.getDni())) {
             throw new BadRequestException("El DNI ya está registrado");
+        }
+        
+        // Validar que el código postal existe
+        if (!localidadRepository.existsById(registerDAO.getCodigoPostal())) {
+            throw new BadRequestException("El código postal no existe en la base de datos");
         }
         
         // Hashear contraseña

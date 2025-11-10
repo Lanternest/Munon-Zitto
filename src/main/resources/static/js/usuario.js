@@ -22,6 +22,13 @@ function togglePassword(inputId) {
 // Espera a que el DOM esté completamente cargado
 document.addEventListener('DOMContentLoaded', function() {
   
+  // Limpiar cualquier sesión anterior al cargar la página de registro
+  // Esto asegura que no se muestren datos de un usuario anterior
+  localStorage.removeItem('token');
+  localStorage.removeItem('rol');
+  localStorage.removeItem('email');
+  localStorage.removeItem('dni');
+  
   // Obtiene el formulario
   const form = document.getElementById('formRegistro');
   
@@ -111,14 +118,20 @@ document.addEventListener('DOMContentLoaded', function() {
 	      });
 	    
     // Muestra mensaje de éxito
-    mostrarExito('¡Registro exitoso! Bienvenido ${nombre} ${apellido}');
+    mostrarExito('¡Registro exitoso! Bienvenido ' + nombre + ' ' + apellido);
         
     // Limpia el formulario
     form.reset();
     
-	// Redirigir al login o hacer auto-login
+    // Limpiar cualquier sesión anterior antes de redirigir
+    localStorage.removeItem('token');
+    localStorage.removeItem('rol');
+    localStorage.removeItem('email');
+    localStorage.removeItem('dni');
+    
+	// Redirigir al login
 	      setTimeout(() => {
-	        window.location.href = '/paginas/login.html';
+	        window.location.href = '../html/login.html';
 	      }, 2000);
 	      
 	    } catch (error) {

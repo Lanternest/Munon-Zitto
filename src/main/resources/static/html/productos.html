@@ -42,7 +42,7 @@
            </li>
 
            <li>
-             <a href="../html/mi-perfil.html" class="menu-item">
+             <a href="../html/panel-cliente.html" class="menu-item">
                 <svg class="menu-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                  <circle cx="12" cy="7" r="4"></circle>
@@ -105,181 +105,10 @@
     <!-- Grid de Productos -->
     <section class="productos-grid-section">
       <div class="productos-grid">
-        
-        <!-- Producto 1: Medialunas 5kg -->
-        <div class="producto-card">
-           
-           <div class="producto-imagen">
-              <img src="../imagenes/img-producto/factura-tarjeta.jpg" alt="Medialunas">
-              <div class="producto-icono">
-                 <img src="../imagenes/img-producto/factura-icono.png" alt="Icono Medialuna">
-              </div>
-           </div>
-          <div class="producto-info">
-            <h3>Medialunas</h3>
-            <p class="producto-peso">Bolsa 5kg</p>
-            <div class="producto-botones">
-               <button onclick="agregarAlCarrito(1, 'Medialunas', 'Bolsa 5kg', 5500, '../imagenes/img-producto/factura-tarjeta.jpg')">
-                COMPRAR</button>             
-              <button class="btn-detalle">$5.500</button>
-            </div>
-          </div>
+        <!-- Los productos se cargarán dinámicamente desde el backend -->
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666;">
+          <p>Cargando productos...</p>
         </div>
-
-        <!-- Producto 2: Medialunas 8kg -->
-        <div class="producto-card">
-          <div class="producto-imagen">
-            <img src="../imagenes/img-producto/factura-tarjeta.jpg" alt="Medialunas">
-            <div class="producto-icono">
-              <img src="../imagenes/img-producto/factura-icono.png" alt="Icono Medialuna">
-            </div>
-          </div>
-          <div class="producto-info">
-            <h3>Medialunas</h3>
-            <p class="producto-peso">Bolsa 8kg</p>
-            <div class="producto-botones">
-              <button onclick="agregarAlCarrito(2, 'Medialunas', 'Bolsa 8kg', 7500, '../imagenes/img-producto/factura-tarjeta.jpg')">
-                COMPRAR</button>
-              <button class="btn-detalle">$7.500</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Producto 3: Medialunas 10kg -->
-        <div class="producto-card">
-          <div class="producto-imagen">
-            <img src="../imagenes/img-producto/factura-tarjeta.jpg" alt="Medialunas">
-            <div class="producto-icono">
-              <img src="../imagenes/img-producto/factura-icono.png" alt="Icono Medialuna">
-            </div>
-          </div>
-          <div class="producto-info">
-            <h3>Medialunas</h3>
-            <p class="producto-peso">Bolsa 10kg</p>
-            <div class="producto-botones">
-              <button onclick="agregarAlCarrito(3, 'Medialunas', 'Bolsa 10kg', 9500, '../imagenes/img-producto/medialunas.jpg')">
-                COMPRAR</button>              
-              <button class="btn-detalle">$9.500</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Producto 4: Tortas 5kg -->
-        <div class="producto-card">
-          <div class="producto-imagen">
-            <img src="../imagenes/img-producto/torta-tarjeta.jpg" alt="Tortas">
-            <div class="producto-icono">
-              <img src="../imagenes/img-producto/torta-icono.png" alt="Icono Torta">
-            </div>
-          </div>
-          <div class="producto-info">
-            <h3>Tortas</h3>
-            <p class="producto-peso">Bolsa 5kg</p>
-            <div class="producto-botones">
-              <button onclick="agregarAlCarrito(4, 'Tortas', 'Bolsa 5kg', 4500, '../imagenes/img-producto/medialunas.jpg')">
-                COMPRAR</button>              
-              <button class="btn-detalle">$4.500</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Producto 5: Tortas 8kg -->
-        <div class="producto-card">
-          <div class="producto-imagen">
-            <img src="../imagenes/img-producto/torta-tarjeta.jpg" alt="Tortas">
-            <div class="producto-icono">
-              <img src="../imagenes/img-producto/torta-icono.png" alt="Icono Torta">
-            </div>
-          </div>
-          <div class="producto-info">
-            <h3>Tortas</h3>
-            <p class="producto-peso">Bolsa 8kg</p>
-            <div class="producto-botones">
-              <button onclick="agregarAlCarrito(5, 'Tortas', 'Bolsa 8kg', 5500, '../imagenes/img-producto/medialunas.jpg')">
-                COMPRAR</button>              
-              <button class="btn-detalle">$5.500</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Producto 6: Tortas 10kg -->
-        <div class="producto-card">
-          <div class="producto-imagen">
-            <img src="../imagenes/img-producto/torta-tarjeta.jpg" alt="Tortas">
-            <div class="producto-icono">
-              <img src="../imagenes/img-producto/torta-icono.png" alt="Icono Torta">
-            </div>
-          </div>
-          <div class="producto-info">
-            <h3>Tortas</h3>
-            <p class="producto-peso">Bolsa 10kg</p>
-            <div class="producto-botones">
-               <button onclick="agregarAlCarrito(6, 'Tortas', 'Bolsa 10kg', 6500, '../imagenes/img-producto/medialunas.jpg')">
-                COMPRAR</button>             
-              <button class="btn-detalle">$6.500</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Producto 7: Roll de Canela -->
-        <div class="producto-card">
-          <div class="producto-imagen">
-            <img src="../imagenes/img-producto/rolldecanela-tarjeta.jpg" alt="Roll de Canela">
-            <div class="producto-icono">
-              <img src="../imagenes/img-producto/rolldecanela-icono.png" alt="Icono Roll">
-            </div>
-          </div>
-          <div class="producto-info">
-            <h3>Roll de Canela</h3>
-            <p class="producto-peso">Docena</p>
-            <div class="producto-botones">
-               <button onclick="agregarAlCarrito(7, 'Roll de Canela', 'Docena', 8000, '../imagenes/img-producto/medialunas.jpg')">
-                COMPRAR</button>             
-              <button class="btn-detalle">$8.000</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Producto 8: Croissant -->
-        <div class="producto-card">
-          <div class="producto-imagen">
-            <img src="../imagenes/img-producto/croassant-tarjeta.jpg" alt="Croissant">
-            <div class="producto-icono">
-              <img src="../imagenes/img-producto/croassant-icono.png" alt="Icono Croissant">
-            </div>
-          </div>
-          <div class="producto-info">
-            <h3>Croissant</h3>
-            <p class="producto-peso">Docena</p>
-            <div class="producto-botones">
-      
-               <button onclick="agregarAlCarrito(8, 'Croissant', 'Docena', 7500, '../imagenes/img-producto/medialunas.jpg')">
-                COMPRAR</button>             
-              <button class="btn-detalle">$7.500</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Producto 9: Chipá -->
-        <div class="producto-card">
-          <div class="producto-imagen">
-            <img src="../imagenes/img-producto/chipa-tarjeta.jpg" alt="Chipá">
-            <div class="producto-icono">
-              <img src="../imagenes/img-producto/chipa-icono.png" alt="Icono Chipá">
-            </div>
-          </div>
-          <div class="producto-info">
-            <h3>Chipá</h3>
-            <p class="producto-peso">Docena</p>
-            <div class="producto-botones">
-         
-              <button onclick="agregarAlCarrito(9, 'Chipa', 'Docena', 4500, '../imagenes/img-producto/medialunas.jpg')">
-                COMPRAR</button>              
-              <button class="btn-detalle">$4.500</button>
-            </div>
-          </div>
-        </div>
-
       </div>
     </section>
   </main>
@@ -312,8 +141,9 @@
       </div>
     </div>
   </footer>
-  <script src="../js/carrito.js"></script>
-  <script src="../js/menu-hamburguesa.js"></script>
   <script src="../js/config-api.js"></script>
+  <script src="../js/carrito.js"></script>
+  <script src="../js/productos.js"></script>
+  <script src="../js/menu-hamburguesa.js"></script>
 </body>
 </html>

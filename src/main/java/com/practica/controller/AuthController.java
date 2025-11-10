@@ -1,5 +1,6 @@
 package com.practica.controller;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import com.practica.dao.LoginDAO;
 import com.practica.dao.LoginResponseDAO;
 import com.practica.dao.RegisterDAO;
 import com.practica.dao.UsuarioDAO;
+import com.practica.exception.BadRequestException;
 import com.practica.service.AuthService;
 
 @RestController
@@ -30,9 +32,20 @@ public class AuthController {
     
     // Registro de cliente
     @PostMapping("/register")
-    public ResponseEntity<UsuarioDAO> registrarCliente(@RequestBody RegisterDAO registerDAO) {
-        UsuarioDAO usuario = authService.registrarCliente(registerDAO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(usuario);
+    public ResponseEntity<?> registrarCliente(@RequestBody RegisterDAO registerDAO) {
+        try {
+            UsuarioDAO usuario = authService.registrarCliente(registerDAO);
+            return ResponseEntity.status(HttpStatus.CREATED).body(usuario);
+        } catch (BadRequestException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al registrar el usuario: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     // Crear administrador (solo para setup inicial)

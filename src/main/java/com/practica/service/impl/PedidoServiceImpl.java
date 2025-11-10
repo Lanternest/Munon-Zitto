@@ -13,8 +13,7 @@ import com.practica.exception.BadRequestException;
 import com.practica.exception.ResourceNotFoundException;
 import com.practica.repository.*;
 import com.practica.service.PedidoService;
-
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PedidoServiceImpl implements PedidoService {

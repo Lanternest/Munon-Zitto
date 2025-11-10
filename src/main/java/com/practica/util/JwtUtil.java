@@ -14,7 +14,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 @Component
 public class JwtUtil {
     
-    private static final String SECRET_KEY = "miClaveSecretaSuperSeguraParaJWT2024";
+    private static final String SECRET_KEY = "miClaveSecretaSuperSeguraParaJWT2025";
     private static final long EXPIRATION_TIME = 86400000; // 24 horas
     
     // Generar token con rol y DNI

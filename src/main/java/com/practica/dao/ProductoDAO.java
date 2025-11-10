@@ -13,6 +13,7 @@ public class ProductoDAO {
     private Integer diasVencimiento;
     private String estado;
     private String categoria;
+    private String imagenUrl;
     
     public ProductoDAO() {}
     
@@ -28,6 +29,21 @@ public class ProductoDAO {
         this.diasVencimiento = diasVencimiento;
         this.estado = estado;
         this.categoria = categoria;
+    }
+    
+    public ProductoDAO(Integer idProductos, String nombre, String descripcion, BigDecimal precio,
+                       Integer stock, LocalDate fechaElaboracion, Integer diasVencimiento,
+                       String estado, String categoria, String imagenUrl) {
+        this.idProductos = idProductos;
+        this.nombre = nombre;
+        this.descripcion = descripcion;
+        this.precio = precio;
+        this.stock = stock;
+        this.fechaElaboracion = fechaElaboracion;
+        this.diasVencimiento = diasVencimiento;
+        this.estado = estado;
+        this.categoria = categoria;
+        this.imagenUrl = imagenUrl;
     }
     
     // Getters y Setters
@@ -92,5 +108,12 @@ public class ProductoDAO {
     	}
     public void setCategoria(String categoria) {
     	this.categoria = categoria;
+    	}
+    
+    public String getImagenUrl() {
+    	return imagenUrl;
+    	}
+    public void setImagenUrl(String imagenUrl) {
+    	this.imagenUrl = imagenUrl;
     	}
 }

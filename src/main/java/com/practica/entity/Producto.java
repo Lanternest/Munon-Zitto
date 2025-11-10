@@ -39,6 +39,9 @@ public class Producto {
     @Column(name = "Categoria", length = 30)
     private String categoria;
     
+    @Column(name = "ImagenUrl", length = 255)
+    private String imagenUrl;
+    
     public enum EstadoProducto {
         Disponible, Agotado, Descontinuado
     }
@@ -53,6 +56,19 @@ public class Producto {
         this.stock = stock;
         this.diasVencimiento = diasVencimiento;
         this.categoria = categoria;
+        this.fechaElaboracion = LocalDate.now();
+        this.estado = EstadoProducto.Disponible;
+    }
+    
+    public Producto(String nombre, String descripcion, BigDecimal precio, Integer stock,
+                    Integer diasVencimiento, String categoria, String imagenUrl) {
+        this.nombre = nombre;
+        this.descripcion = descripcion;
+        this.precio = precio;
+        this.stock = stock;
+        this.diasVencimiento = diasVencimiento;
+        this.categoria = categoria;
+        this.imagenUrl = imagenUrl;
         this.fechaElaboracion = LocalDate.now();
         this.estado = EstadoProducto.Disponible;
     }
@@ -119,5 +135,12 @@ public class Producto {
     	}
     public void setCategoria(String categoria) {
     	this.categoria = categoria;
+    	}
+    
+    public String getImagenUrl() {
+    	return imagenUrl;
+    	}
+    public void setImagenUrl(String imagenUrl) {
+    	this.imagenUrl = imagenUrl;
     	}
 }

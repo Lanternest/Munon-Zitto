@@ -32,7 +32,7 @@ public class Cliente {
     
     @Column(name = "CodigoPostal", nullable = false)
     private Integer codigoPostal;
-    
+
     // Constructor vacío
     public Cliente() {
         this.fechaRegistro = LocalDateTime.now();
@@ -53,58 +53,58 @@ public class Cliente {
     
     // Getters y Setters
     public String getDni() {
-    	return dni;
-    	}
+        return dni;
+    }
     public void setDni(String dni) {
-    	this.dni = dni;
-    	}
+        this.dni = dni;
+    }
     
     public String getNombre() {
-    	return nombre;
-    	}
+        return nombre;
+    }
     public void setNombre(String nombre) {
-    	this.nombre = nombre;
-    	}
+        this.nombre = nombre;
+    }
     
     public String getApellido() {
-    	return apellido;
-    	}
+        return apellido;
+    }
     public void setApellido(String apellido) {
-    	this.apellido = apellido;
-    	}
+        this.apellido = apellido;
+    }
     
     public String getDireccion() {
-    	return direccion;
-    	}
+        return direccion;
+    }
     public void setDireccion(String direccion) {
-    	this.direccion = direccion;
-    	}
+        this.direccion = direccion;
+    }
     
     public String getTelefono() {
-    	return telefono;
-    	}
+        return telefono;
+    }
     public void setTelefono(String telefono) {
-    	this.telefono = telefono;
-    	}
+        this.telefono = telefono;
+    }
     
     public String getEmail() {
-    	return email;
-    	}
+        return email;
+    }
     public void setEmail(String email) {
-    	this.email = email;
-    	}
+        this.email = email;
+    }
     
     public LocalDateTime getFechaRegistro() {
-    	return fechaRegistro;
-    	}
+        return fechaRegistro;
+    }
     public void setFechaRegistro(LocalDateTime fechaRegistro) {
-    	this.fechaRegistro = fechaRegistro;
-    	}
+        this.fechaRegistro = fechaRegistro;
+    }
     
     public Integer getCodigoPostal() {
-    	return codigoPostal;
-    	}
+        return codigoPostal;
+    }
     public void setCodigoPostal(Integer codigoPostal) {
-    	this.codigoPostal = codigoPostal;
-    	}
+        this.codigoPostal = codigoPostal;
+    }
 }

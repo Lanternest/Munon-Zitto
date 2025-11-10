@@ -56,13 +56,19 @@ async function fetchAPI(endpoint, options = {}) {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Error: ${response.status}`);
+      const errorMessage = errorData.error || errorData.message || `Error: ${response.status}`;
+      throw new Error(errorMessage);
     }
     
     return await response.json();
   } catch (error) {
     console.error('Error en la petición:', error);
-    throw error;
+    // Si el error ya tiene un mensaje, lanzarlo tal cual
+    if (error.message) {
+      throw error;
+    }
+    // Si no, crear un error genérico
+    throw new Error('Error de conexión con el servidor');
   }
 }
 
