@@ -1,23 +1,145 @@
-// ========================================
 // PANEL CLIENTE - FUNCIONALIDAD
 // ========================================
 
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Panel Cliente inicializado correctamente');
-});
+let clienteActual = null;
 
+document.addEventListener('DOMContentLoaded', function() {
+	// Verificar autenticación y rol
+	  if (!estaAutenticado()) {
+	    window.location.href = '../html/login.html';
+	    return;
+	  }
+	  
+	  if (!verificarRol('CLIENTE')) {
+	    return;
+	  }
+	  
+	  // Cargar datos del cliente
+	  cargarDatosCliente();
+	  cargarPedidosCliente();
+	  
+	  console.log('Panel Cliente inicializado correctamente');
+	});
+	
+// CARGAR DATOS DEL CLIENTE
 // ========================================
+
+	async function cargarDatosCliente() {
+	  try {
+	    const sesion = obtenerSesion();
+	    const dni = sesion.dni;
+	    
+	    if (!dni) {
+	      throw new Error('DNI no encontrado en la sesión');
+	    }
+	    
+	    // Obtener datos del cliente por DNI
+	    const cliente = await fetchAPI(`/clientes/${dni}`, {
+	      method: 'GET'
+	    });
+	    
+	    clienteActual = cliente;
+	    
+	    // Actualizar la interfaz con los datos
+	    document.getElementById('nombreCliente').textContent = `${cliente.nombre} ${cliente.apellido}`;
+	    document.getElementById('emailCliente').textContent = cliente.email;
+	    document.getElementById('telefonoCliente').textContent = cliente.telefono;
+	    document.getElementById('direccionCliente').textContent = cliente.direccion;
+	    
+	  } catch (error) {
+	    console.error('Error al cargar datos del cliente:', error);
+	    mostrarMensaje('Error al cargar los datos del cliente', 'error');
+	  }
+	}
+	
+// CARGAR PEDIDOS DEL CLIENTE
+// ========================================
+
+	async function cargarPedidosCliente() {
+	  try {
+	    const sesion = obtenerSesion();
+	    const dni = sesion.dni;
+	    
+	    if (!dni) {
+	      throw new Error('DNI no encontrado en la sesión');
+	    }
+	    
+	    // Obtener pedidos del cliente
+	    const pedidos = await fetchAPI(`/pedidos/cliente/${dni}`, {
+	      method: 'GET'
+	    });
+	    
+	    // Actualizar la tabla de pedidos
+	    const tablaPedidos = document.getElementById('tablaPedidos');
+	    tablaPedidos.innerHTML = '';
+	    
+	    if (pedidos.length === 0) {
+	      tablaPedidos.innerHTML = `
+	        <tr>
+	          <td colspan="5" style="text-align: center; padding: 20px; color: #666;">
+	            No tienes pedidos registrados aún
+	          </td>
+	        </tr>
+	      `;
+	      return;
+	    }
+	    
+	    pedidos.forEach(pedido => {
+	      const fila = crearFilaPedido(pedido);
+	      tablaPedidos.innerHTML += fila;
+	    });
+	    
+	  } catch (error) {
+	    console.error('Error al cargar pedidos:', error);
+	    mostrarMensaje('Error al cargar los pedidos', 'error');
+	  }
+	}
+
+	function crearFilaPedido(pedido) {
+	  const fecha = new Date(pedido.fecha).toLocaleDateString('es-AR');
+	  const estadoClass = obtenerClaseEstado(pedido.estado);
+	  const estadoTexto = formatearEstado(pedido.estado);
+	  
+	  return `
+	    <tr>
+	      <td>#${pedido.idPedido.toString().padStart(3, '0')}</td>
+	      <td>${fecha}</td>
+	      <td><span class="estado ${estadoClass}">${estadoTexto}</span></td>
+	      <td>$${pedido.precioTotal.toLocaleString('es-AR')}</td>
+	      <td>
+	        <button class="btn-ver-detalle" onclick="verDetallePedido(${pedido.idPedido})">
+	          Ver Detalle
+	        </button>
+	      </td>
+	    </tr>
+	  `;
+	}
+
+	function obtenerClaseEstado(estado) {
+	  const clases = {
+	    'Pendiente': 'pendiente',
+	    'Confirmado': 'pendiente',
+	    'En_Preparacion': 'en-camino',
+	    'En_Camino': 'en-camino',
+	    'Entregado': 'entregado',
+	    'Cancelado': 'cancelado'
+	  };
+	  return clases[estado] || 'pendiente';
+	}
+
+	function formatearEstado(estado) {
+	  return estado.replace(/_/g, ' ');
+	}
+
 // FUNCIÓN PARA EDITAR DATOS PERSONALES
 // ========================================
 
 function editarDatos() {
-  // Obtener los elementos actuales
-  const nombre = document.getElementById('nombreCliente').textContent;
-  const email = document.getElementById('emailCliente').textContent;
-  const telefono = document.getElementById('telefonoCliente').textContent;
-  const direccion = document.getElementById('direccionCliente').textContent;
+  if (!clienteActual) {
+    mostrarMensaje('Error: No se han cargado los datos del cliente', 'error');
+    return;
+  }
   
-  // Crear el formulario de edición
   const formularioHTML = `
     <div class="modal-overlay" id="modalEditar">
       <div class="modal-contenido">
@@ -33,19 +155,23 @@ function editarDatos() {
         <form id="formEditarDatos" class="modal-form">
           <div class="form-group-modal">
             <label for="editNombre">Nombre:</label>
-            <input type="text" id="editNombre" value="${nombre}" required>
+            <input type="text" id="editNombre" value="${clienteActual.nombre}" required>
           </div>
           <div class="form-group-modal">
-            <label for="editEmail">Email:</label>
-            <input type="email" id="editEmail" value="${email}" required>
+            <label for="editApellido">Apellido:</label>
+            <input type="text" id="editApellido" value="${clienteActual.apellido}" required>
           </div>
           <div class="form-group-modal">
             <label for="editTelefono">Teléfono:</label>
-            <input type="tel" id="editTelefono" value="${telefono}" required>
+            <input type="tel" id="editTelefono" value="${clienteActual.telefono}" required>
           </div>
           <div class="form-group-modal">
             <label for="editDireccion">Dirección:</label>
-            <input type="text" id="editDireccion" value="${direccion}" required>
+            <input type="text" id="editDireccion" value="${clienteActual.direccion}" required>
+          </div>
+          <div class="form-group-modal">
+            <label for="editCodigoPostal">Código Postal:</label>
+            <input type="number" id="editCodigoPostal" value="${clienteActual.codigoPostal}" required>
           </div>
           <div class="modal-botones">
             <button type="submit" class="btn-guardar-modal">Guardar Cambios</button>
@@ -66,39 +192,66 @@ function editarDatos() {
   });
 }
 
-// ========================================
 // FUNCIÓN PARA GUARDAR DATOS
 // ========================================
 
-function guardarDatos() {
-  // Obtener los nuevos valores
-  const nuevoNombre = document.getElementById('editNombre').value;
-  const nuevoEmail = document.getElementById('editEmail').value;
-  const nuevoTelefono = document.getElementById('editTelefono').value;
-  const nuevaDireccion = document.getElementById('editDireccion').value;
-  
-  // Actualizar los datos en la página
-  document.getElementById('nombreCliente').textContent = nuevoNombre;
-  document.getElementById('emailCliente').textContent = nuevoEmail;
-  document.getElementById('telefonoCliente').textContent = nuevoTelefono;
-  document.getElementById('direccionCliente').textContent = nuevaDireccion;
-  
-  // Cerrar el modal
-  cerrarModalEditar();
-  
-  // Mostrar mensaje de éxito
-  mostrarMensaje('Datos actualizados correctamente', 'success');
-  
-  // Aquí podrías enviar los datos a un servidor
-  console.log('Datos actualizados:', {
-    nombre: nuevoNombre,
-    email: nuevoEmail,
-    telefono: nuevoTelefono,
-    direccion: nuevaDireccion
-  });
+async function guardarDatos() {
+  try {
+    const nuevoNombre = document.getElementById('editNombre').value.trim();
+    const nuevoApellido = document.getElementById('editApellido').value.trim();
+    const nuevoTelefono = document.getElementById('editTelefono').value.trim();
+    const nuevaDireccion = document.getElementById('editDireccion').value.trim();
+    const nuevoCodigoPostal = parseInt(document.getElementById('editCodigoPostal').value);
+    
+    if (!nuevoNombre || !nuevoApellido || !nuevoTelefono || !nuevaDireccion || !nuevoCodigoPostal) {
+      mostrarMensaje('Por favor, complete todos los campos', 'error');
+      return;
+    }
+    
+    const datosActualizados = {
+      dni: clienteActual.dni,
+      nombre: nuevoNombre,
+      apellido: nuevoApellido,
+      direccion: nuevaDireccion,
+      telefono: nuevoTelefono,
+      email: clienteActual.email,
+      codigoPostal: nuevoCodigoPostal
+    };
+    
+    const btnGuardar = document.querySelector('.btn-guardar-modal');
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Guardando...';
+    
+    // Actualizar en el backend
+    const clienteActualizado = await fetchAPI(`/clientes/${clienteActual.dni}`, {
+      method: 'PUT',
+      body: JSON.stringify(datosActualizados)
+    });
+    
+    // Actualizar datos locales
+    clienteActual = clienteActualizado;
+    
+    // Actualizar la interfaz
+    document.getElementById('nombreCliente').textContent = `${clienteActualizado.nombre} ${clienteActualizado.apellido}`;
+    document.getElementById('emailCliente').textContent = clienteActualizado.email;
+    document.getElementById('telefonoCliente').textContent = clienteActualizado.telefono;
+    document.getElementById('direccionCliente').textContent = clienteActualizado.direccion;
+    
+    cerrarModalEditar();
+    mostrarMensaje('Datos actualizados correctamente', 'success');
+    
+  } catch (error) {
+    console.error('Error al actualizar datos:', error);
+    mostrarMensaje(error.message || 'Error al actualizar los datos', 'error');
+    
+    const btnGuardar = document.querySelector('.btn-guardar-modal');
+    if (btnGuardar) {
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = 'Guardar Cambios';
+    }
+  }
 }
 
-// ========================================
 // FUNCIÓN PARA CERRAR EL MODAL
 // ========================================
 
@@ -109,114 +262,102 @@ function cerrarModalEditar() {
   }
 }
 
-// ========================================
 // FUNCIÓN VER DETALLE DE PEDIDO
 // ========================================
 
-function verDetallePedido(pedidoId) {
-  // Datos de ejemplo del pedido
-  const pedidos = {
-    1: {
-      numero: '#001',
-      fecha: '05/11/2024',
-      estado: 'Entregado',
-      productos: [
-        { nombre: 'Medialunas 5kg', cantidad: 2, precio: 5500 },
-        { nombre: 'Tortas 8kg', cantidad: 1, precio: 8900 }
-      ],
-      total: 27500
-    },
-    2: {
-      numero: '#002',
-      fecha: '06/11/2024',
-      estado: 'En Camino',
-      productos: [
-        { nombre: 'Roll de Canela', cantidad: 3, precio: 3200 }
-      ],
-      total: 15800
-    },
-    3: {
-      numero: '#003',
-      fecha: '07/11/2024',
-      estado: 'Pendiente',
-      productos: [
-        { nombre: 'Medialunas 10kg', cantidad: 2, precio: 11000 },
-        { nombre: 'Croissant Docena', cantidad: 5, precio: 4260 }
-      ],
-      total: 42300
-    }
-  };
+async function verDetallePedido(pedidoId) {
+	try{
+	// Obtener detalles del pedido
+	const pedido = await fetchAPI(`/pedidos/${pedidoId}`, {
+	  method: 'GET'
+	});
+	
+	const fecha = new Date(pedido.fecha).toLocaleDateString('es-AR');
+	const estadoClass = obtenerClaseEstado(pedido.estado);
+	const estadoTexto = formatearEstado(pedido.estado);
   
-  const pedido = pedidos[pedidoId];
-  
-  if (!pedido) {
-    mostrarMensaje('Pedido no encontrado', 'error');
-    return;
-  }
-  
-  // Crear tabla de productos
-  let productosHTML = '';
-  pedido.productos.forEach(producto => {
-    productosHTML += `
-      <tr>
-        <td>${producto.nombre}</td>
-        <td>${producto.cantidad}</td>
-        <td>$${producto.precio.toLocaleString('es-AR')}</td>
-        <td>$${(producto.precio * producto.cantidad).toLocaleString('es-AR')}</td>
-      </tr>
-    `;
-  });
-  
-  // Crear el modal
-  const modalHTML = `
-    <div class="modal-overlay" id="modalDetallePedido">
-      <div class="modal-contenido modal-grande">
-        <div class="modal-header">
-          <h2>Detalle del Pedido ${pedido.numero}</h2>
-          <button class="btn-cerrar-modal" onclick="cerrarModalDetalle()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="detalle-info">
-            <p><strong>Fecha:</strong> ${pedido.fecha}</p>
-            <p><strong>Estado:</strong> <span class="estado ${pedido.estado.toLowerCase().replace(' ', '-')}">${pedido.estado}</span></p>
-          </div>
-          <table class="tabla-modal">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Precio Unit.</th>
-                <th>Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${productosHTML}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="3"><strong>TOTAL</strong></td>
-                <td><strong>$${pedido.total.toLocaleString('es-AR')}</strong></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cerrar-modal-footer" onclick="cerrarModalDetalle()">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // Agregar el modal al body
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
-}
+	// Crear tabla de productos
+	    let productosHTML = '';
+	    
+	    if (pedido.detalles && pedido.detalles.length > 0) {
+	      pedido.detalles.forEach(detalle => {
+	        productosHTML += `
+	          <tr>
+	            <td>Producto ID: ${detalle.idProductos}</td>
+	            <td>${detalle.cantidad}</td>
+	            <td>$${detalle.precioUnitario.toLocaleString('es-AR')}</td>
+	            <td>$${detalle.subtotal.toLocaleString('es-AR')}</td>
+	          </tr>
+	        `;
+	      });
+	    } else {
+	      productosHTML = '<tr><td colspan="4" style="text-align: center;">No hay detalles disponibles</td></tr>';
+	    }
+	    
+	    const modalHTML = `
+	      <div class="modal-overlay" id="modalDetallePedido">
+	        <div class="modal-contenido modal-grande">
+	          <div class="modal-header">
+	            <h2>Detalle del Pedido #${pedido.idPedido.toString().padStart(3, '0')}</h2>
+	            <button class="btn-cerrar-modal" onclick="cerrarModalDetalle()">
+	              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+	                <line x1="18" y1="6" x2="6" y2="18"></line>
+	                <line x1="6" y1="6" x2="18" y2="18"></line>
+	              </svg>
+	            </button>
+	          </div>
+	          <div class="modal-body">
+	            <div class="detalle-info">
+	              <p><strong>Fecha:</strong> ${fecha}</p>
+	              <p><strong>Estado:</strong> <span class="estado ${estadoClass}">${estadoTexto}</span></p>
+	              ${pedido.direccionEntrega ? `<p><strong>Dirección de entrega:</strong> ${pedido.direccionEntrega}</p>` : ''}
+	              ${pedido.observaciones ? `<p><strong>Observaciones:</strong> ${pedido.observaciones}</p>` : ''}
+	            </div>
+	            <table class="tabla-modal">
+	              <thead>
+	                <tr>
+	                  <th>Producto</th>
+	                  <th>Cantidad</th>
+	                  <th>Precio Unit.</th>
+	                  <th>Subtotal</th>
+	                </tr>
+	              </thead>
+	              <tbody>
+	                ${productosHTML}
+	              </tbody>
+	              <tfoot>
+	                <tr>
+	                  <td colspan="3"><strong>Subtotal</strong></td>
+	                  <td><strong>$${pedido.subTotal.toLocaleString('es-AR')}</strong></td>
+	                </tr>
+	                ${pedido.descuentoTotal > 0 ? `
+	                <tr>
+	                  <td colspan="3"><strong>Descuento</strong></td>
+	                  <td><strong>-$${pedido.descuentoTotal.toLocaleString('es-AR')}</strong></td>
+	                </tr>
+	                ` : ''}
+	                <tr>
+	                  <td colspan="3"><strong>TOTAL</strong></td>
+	                  <td><strong>$${pedido.precioTotal.toLocaleString('es-AR')}</strong></td>
+	                </tr>
+	              </tfoot>
+	            </table>
+	          </div>
+	          <div class="modal-footer">
+	            <button class="btn-cerrar-modal-footer" onclick="cerrarModalDetalle()">Cerrar</button>
+	          </div>
+	        </div>
+	      </div>
+	    `;
+	    
+	    document.body.insertAdjacentHTML('beforeend', modalHTML);
+	    
+	  } catch (error) {
+	    console.error('Error al obtener detalle del pedido:', error);
+	    mostrarMensaje('Error al cargar el detalle del pedido', 'error');
+	  }
+	}
 
-// ========================================
 // FUNCIÓN PARA CERRAR MODAL DE DETALLE
 // ========================================
 
@@ -227,7 +368,6 @@ function cerrarModalDetalle() {
   }
 }
 
-// ========================================
 // FUNCIÓN PARA MOSTRAR MENSAJES
 // ========================================
 
@@ -238,16 +378,13 @@ function mostrarMensaje(mensaje, tipo = 'info') {
     </div>
   `;
   
-  // Eliminar mensajes anteriores
   const mensajeAnterior = document.getElementById('mensajeFlotante');
   if (mensajeAnterior) {
     mensajeAnterior.remove();
   }
   
-  // Agregar el nuevo mensaje
   document.body.insertAdjacentHTML('beforeend', mensajeHTML);
   
-  // Eliminar después de 3 segundos
   setTimeout(() => {
     const mensaje = document.getElementById('mensajeFlotante');
     if (mensaje) {
@@ -256,7 +393,6 @@ function mostrarMensaje(mensaje, tipo = 'info') {
   }, 3000);
 }
 
-// ========================================
 // ESTILOS PARA MODALES (agregar dinámicamente)
 // ========================================
 
@@ -348,6 +484,7 @@ if (!document.getElementById('estilosModales')) {
         border: 2px solid #e0e0e0;
         border-radius: 8px;
         font-size: 1rem;
+        box-sizing: border-box;
       }
       
       .form-group-modal input:focus {
@@ -379,6 +516,11 @@ if (!document.getElementById('estilosModales')) {
       
       .btn-guardar-modal:hover {
         background-color: #0096b8;
+      }
+      
+      .btn-guardar-modal:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
       }
       
       .btn-cancelar-modal {
@@ -469,6 +611,11 @@ if (!document.getElementById('estilosModales')) {
         background-color: #00b4d8;
       }
       
+      .estado.cancelado {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
@@ -488,3 +635,9 @@ if (!document.getElementById('estilosModales')) {
   
   document.head.insertAdjacentHTML('beforeend', estilos);
 }
+
+// Hacer funciones globales
+window.editarDatos = editarDatos;
+window.verDetallePedido = verDetallePedido;
+window.cerrarModalEditar = cerrarModalEditar;
+window.cerrarModalDetalle = cerrarModalDetalle;

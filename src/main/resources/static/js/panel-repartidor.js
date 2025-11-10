@@ -1,75 +1,201 @@
-// ========================================
 // PANEL REPARTIDOR - FUNCIONALIDAD
 // ========================================
 
+let entregasPendientes = [];
+
 document.addEventListener('DOMContentLoaded', function() {
+  // Verificar autenticación y rol
+  if (!estaAutenticado()) {
+    window.location.href = '../html/login.html';
+    return;
+  }
+  
+  if (!verificarRol('REPARTIDOR')) {
+    return;
+  }
+  
+  // Cargar entregas pendientes
+  cargarEntregas();
+  
   console.log('Panel Repartidor inicializado correctamente');
-  actualizarContadorEntregas();
 });
 
-// ========================================
-// FUNCIÓN PARA CONFIRMAR ENTREGA
+// CARGAR ENTREGAS DESDE EL BACKEND
 // ========================================
 
-function confirmarEntrega(pedidoId) {
-  // Mostrar confirmación
-  const confirmar = confirm('¿Confirmas que has entregado este pedido?');
-  
-  if (confirmar) {
-    // Buscar el elemento de la entrega
-    const entregaItem = document.querySelector(`.entrega-item button[onclick*="${pedidoId}"]`).closest('.entrega-item');
+async function cargarEntregas() {
+  try {
+    const sesion = obtenerSesion();
+    const dniR = sesion.dni;
     
-    // Agregar animación de salida
-    entregaItem.style.transition = 'all 0.5s ease';
-    entregaItem.style.opacity = '0';
-    entregaItem.style.transform = 'translateX(100%)';
+    if (!dniR) {
+      throw new Error('DNI del repartidor no encontrado');
+    }
     
-    // Eliminar después de la animación
-    setTimeout(() => {
-      entregaItem.remove();
-      
-      // Actualizar contador
-      actualizarContadorEntregas();
-      
-      // Verificar si no quedan más entregas
-      verificarEntregasRestantes();
-      
-      // Mostrar mensaje de éxito
-      mostrarMensajeRepartidor('Entrega confirmada correctamente', 'success');
-      
-      // Aquí podrías enviar la confirmación a un servidor
-      console.log('Entrega confirmada:', pedidoId);
-      
-      // Simular envío al servidor
-      guardarEntregaEnServidor(pedidoId);
-    }, 500);
+    // Obtener entregas asignadas al repartidor
+    const entregas = await fetchAPI(`/repartidor/mis-entregas/${dniR}`, {
+      method: 'GET'
+    });
+    
+    entregasPendientes = entregas;
+    
+    renderizarEntregas();
+    actualizarContadorEntregas();
+    
+  } catch (error) {
+    console.error('Error al cargar entregas:', error);
+    mostrarMensajeRepartidor('Error al cargar las entregas. Mostrando datos de ejemplo.', 'error');
+    
+    // Mostrar mensaje si no hay entregas
+    verificarEntregasRestantes();
   }
 }
 
+// RENDERIZAR ENTREGAS
 // ========================================
+
+function renderizarEntregas() {
+  const listaEntregas = document.querySelector('.entregas-lista');
+  
+  if (!listaEntregas) return;
+  
+  listaEntregas.innerHTML = '';
+  
+  if (entregasPendientes.length === 0) {
+    verificarEntregasRestantes();
+    return;
+  }
+  
+  entregasPendientes.forEach(entrega => {
+    const entregaHTML = crearEntregaHTML(entrega);
+    listaEntregas.innerHTML += entregaHTML;
+  });
+  
+  // Agregar eventos a los elementos
+  agregarEventosEntregas();
+}
+
+function crearEntregaHTML(entrega) {
+  return `
+    <div class="entrega-item" data-pedido="${entrega.idPedido}">
+      <div class="entrega-info">
+        <h3>Pedido #${entrega.idPedido.toString().padStart(3, '0')}</h3>
+        <p class="entrega-cliente" onclick="llamarCliente('${entrega.clienteTelefono}')">
+          <svg class="icono-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          ${entrega.clienteNombre}
+        </p>
+        <p class="entrega-direccion" onclick="abrirEnMaps('${entrega.direccionEntrega}')">
+          <svg class="icono-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          ${entrega.direccionEntrega}
+        </p>
+        <p class="entrega-telefono" onclick="llamarCliente('${entrega.clienteTelefono}')">
+          <svg class="icono-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          ${entrega.clienteTelefono}
+        </p>
+        ${entrega.observaciones ? `
+        <p class="entrega-observaciones">
+          <svg class="icono-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          Observaciones: ${entrega.observaciones}
+        </p>
+        ` : ''}
+        <p class="entrega-total">
+          <strong>Total:</strong> $${entrega.precioTotal.toLocaleString('es-AR')}
+        </p>
+      </div>
+      <div class="entrega-acciones">
+        <button class="btn-confirmar-entrega" onclick="confirmarEntrega(${entrega.idPedido})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Confirmar Entrega
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// FUNCIÓN PARA CONFIRMAR ENTREGA
+// ========================================
+
+async function confirmarEntrega(pedidoId) {
+  const confirmar = confirm('¿Confirmas que has entregado este pedido?');
+  
+  if (!confirmar) {
+    return;
+  }
+  
+  try {
+    // Actualizar estado del pedido en el backend
+    await fetchAPI(`/repartidor/entregar/${pedidoId}`, {
+      method: 'PATCH'
+    });
+    
+    // Buscar el elemento de la entrega en el DOM
+    const entregaItem = document.querySelector(`.entrega-item[data-pedido="${pedidoId}"]`);
+    
+    if (entregaItem) {
+      // Agregar animación de salida
+      entregaItem.style.transition = 'all 0.5s ease';
+      entregaItem.style.opacity = '0';
+      entregaItem.style.transform = 'translateX(100%)';
+      
+      // Eliminar después de la animación
+      setTimeout(() => {
+        entregaItem.remove();
+        
+        // Actualizar array local
+        entregasPendientes = entregasPendientes.filter(e => e.idPedido !== pedidoId);
+        
+        // Actualizar contador
+        actualizarContadorEntregas();
+        
+        // Verificar si no quedan más entregas
+        verificarEntregasRestantes();
+        
+        // Mostrar mensaje de éxito
+        mostrarMensajeRepartidor('Entrega confirmada correctamente', 'success');
+      }, 500);
+    }
+    
+  } catch (error) {
+    console.error('Error al confirmar entrega:', error);
+    mostrarMensajeRepartidor(error.message || 'Error al confirmar la entrega', 'error');
+  }
+}
+
 // FUNCIÓN PARA ACTUALIZAR CONTADOR
 // ========================================
 
 function actualizarContadorEntregas() {
-  const entregas = document.querySelectorAll('.entrega-item');
   const contador = document.querySelector('.badge-count');
   
   if (contador) {
-    const cantidad = entregas.length;
+    const cantidad = entregasPendientes.length;
     contador.textContent = `${cantidad} pedido${cantidad !== 1 ? 's' : ''}`;
   }
 }
 
-// ========================================
 // FUNCIÓN PARA VERIFICAR ENTREGAS RESTANTES
 // ========================================
 
 function verificarEntregasRestantes() {
-  const entregas = document.querySelectorAll('.entrega-item');
+  const listaEntregas = document.querySelector('.entregas-lista');
   
-  if (entregas.length === 0) {
-    // Mostrar mensaje de que no hay más entregas
-    const listaEntregas = document.querySelector('.entregas-lista');
+  if (entregasPendientes.length === 0) {
     listaEntregas.innerHTML = `
       <div class="entregas-completadas">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -78,46 +204,53 @@ function verificarEntregasRestantes() {
         </svg>
         <h3>¡Todas las entregas completadas!</h3>
         <p>No tienes entregas pendientes por el momento</p>
+        <button class="btn-recargar" onclick="cargarEntregas()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; margin-right: 8px;">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Recargar entregas
+        </button>
       </div>
     `;
   }
 }
 
-// ========================================
-// FUNCIÓN PARA GUARDAR EN SERVIDOR (SIMULADO)
+// AGREGAR EVENTOS A ENTREGAS
 // ========================================
 
-function guardarEntregaEnServidor(pedidoId) {
-  // Datos de la entrega
-  const entrega = {
-    pedidoId: pedidoId,
-    estado: 'entregado',
-    fechaEntrega: new Date().toISOString(),
-    repartidor: 'Usuario Actual'
-  };
-  
-  // Simulación de envío al servidor
-  console.log('Enviando al servidor:', entrega);
-  
-  // Aquí harías la petición real al servidor
-  // fetch('/api/entregas/confirmar', {
-  //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify(entrega)
-  // })
-  // .then(response => response.json())
-  // .then(data => {
-  //   console.log('Respuesta del servidor:', data);
-  // })
-  // .catch(error => {
-  //   console.error('Error:', error);
-  //   mostrarMensajeRepartidor('Error al confirmar la entrega', 'error');
-  // });
+function agregarEventosEntregas() {
+	
 }
 
+// FUNCIÓN PARA LLAMAR AL CLIENTE
 // ========================================
+
+function llamarCliente(telefono) {
+  if (!telefono || telefono === 'N/A') {
+    mostrarMensajeRepartidor('Número de teléfono no disponible', 'error');
+    return;
+  }
+  
+  // En un dispositivo móvil, esto abrirá la aplicación de teléfono
+  window.location.href = `tel:${telefono}`;
+}
+
+// FUNCIÓN PARA ABRIR EN MAPS
+// ========================================
+
+function abrirEnMaps(direccion) {
+  if (!direccion) {
+    mostrarMensajeRepartidor('Dirección no disponible', 'error');
+    return;
+  }
+  
+  // Abrir Google Maps con la dirección
+  const direccionEncoded = encodeURIComponent(direccion);
+  window.open(`https://www.google.com/maps/search/?api=1&query=${direccionEncoded}`, '_blank');
+}
+
 // FUNCIÓN PARA MOSTRAR MENSAJES
 // ========================================
 
@@ -128,16 +261,13 @@ function mostrarMensajeRepartidor(mensaje, tipo = 'info') {
     </div>
   `;
   
-  // Eliminar mensajes anteriores
   const mensajeAnterior = document.getElementById('mensajeFlotanteRepartidor');
   if (mensajeAnterior) {
     mensajeAnterior.remove();
   }
   
-  // Agregar el nuevo mensaje
   document.body.insertAdjacentHTML('beforeend', mensajeHTML);
   
-  // Eliminar después de 3 segundos
   setTimeout(() => {
     const mensaje = document.getElementById('mensajeFlotanteRepartidor');
     if (mensaje) {
@@ -148,27 +278,7 @@ function mostrarMensajeRepartidor(mensaje, tipo = 'info') {
   }, 3000);
 }
 
-// ========================================
-// FUNCIÓN PARA LLAMAR AL CLIENTE
-// ========================================
-
-function llamarCliente(telefono) {
-  // En un dispositivo móvil, esto abrirá la aplicación de teléfono
-  window.location.href = `tel:${telefono}`;
-}
-
-// ========================================
-// FUNCIÓN PARA ABRIR EN MAPS
-// ========================================
-
-function abrirEnMaps(direccion) {
-  // Abrir Google Maps con la dirección
-  const direccionEncoded = encodeURIComponent(direccion);
-  window.open(`https://www.google.com/maps/search/?api=1&query=${direccionEncoded}`, '_blank');
-}
-
-// ========================================
-// ESTILOS ADICIONALES (agregar dinámicamente)
+// ESTILOS ADICIONALES
 // ========================================
 
 if (!document.getElementById('estilosRepartidor')) {
@@ -185,23 +295,67 @@ if (!document.getElementById('estilosRepartidor')) {
         max-width: 100px;
         height: auto;
         margin-bottom: 3%;
+        color: #28a745;
       }
       
       .entregas-completadas h3 {
         font-size: clamp(1.5rem, 3vw, 2rem);
         margin-bottom: 2%;
+        color: #28a745;
       }
       
       .entregas-completadas p {
         font-size: clamp(1rem, 2vw, 1.2rem);
         color: #666;
+        margin-bottom: 4%;
+      }
+      
+      .btn-recargar {
+        background-color: #00b4d8;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 180, 216, 0.3);
+      }
+      
+      .btn-recargar:hover {
+        background-color: #0096b8;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 180, 216, 0.4);
+      }
+      
+      .entrega-observaciones {
+        background-color: #fff3cd;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 4px solid #ffc107;
+        margin-top: 10px;
+        color: #856404 !important;
+      }
+      
+      .entrega-total {
+        background-color: #d4edda;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 4px solid #28a745;
+        margin-top: 10px;
+        color: #155724 !important;
+        font-size: 1.1rem !important;
       }
       
       .mensaje-flotante-repartidor {
         position: fixed;
         top: 20px;
         right: 20px;
-        padding: 3% 4%;
+        padding: 15px 20px;
         border-radius: 10px;
         color: white;
         font-weight: 600;
@@ -209,6 +363,7 @@ if (!document.getElementById('estilosRepartidor')) {
         transition: all 0.3s ease;
         animation: slideInRight 0.3s ease;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
       }
       
       .mensaje-success {
@@ -234,15 +389,36 @@ if (!document.getElementById('estilosRepartidor')) {
         }
       }
       
-      /* Estilo para hacer los teléfonos y direcciones clickeables */
-      .entrega-telefono, .entrega-direccion {
+      .entrega-telefono, .entrega-direccion, .entrega-cliente {
         cursor: pointer;
         transition: all 0.2s ease;
+        padding: 5px;
+        border-radius: 5px;
       }
       
-      .entrega-telefono:hover, .entrega-direccion:hover {
+      .entrega-telefono:hover, .entrega-direccion:hover, .entrega-cliente:hover {
+        background-color: #e3f6fc;
         color: #00b4d8;
-        text-decoration: underline;
+      }
+      
+      .icono-inline {
+        width: 18px;
+        height: 18px;
+        color: #00b4d8;
+        vertical-align: middle;
+      }
+      
+      @media (max-width: 768px) {
+        .mensaje-flotante-repartidor {
+          right: 10px;
+          left: 10px;
+          max-width: none;
+        }
+        
+        .btn-recargar {
+          width: 100%;
+          justify-content: center;
+        }
       }
     </style>
   `;
@@ -250,7 +426,14 @@ if (!document.getElementById('estilosRepartidor')) {
   document.head.insertAdjacentHTML('beforeend', estilos);
 }
 
-// ========================================
+// Hacer funciones globales
+window.confirmarEntrega = confirmarEntrega;
+window.llamarCliente = llamarCliente;
+window.abrirEnMaps = abrirEnMaps;
+window.cargarEntregas = cargarEntregas;
+
+console.log('Panel Repartidor inicializado correctamente');
+
 // HACER CLICKEABLES LOS TELÉFONOS Y DIRECCIONES
 // ========================================
 

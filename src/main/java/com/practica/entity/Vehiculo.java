@@ -7,17 +7,17 @@ import jakarta.persistence.*;
 public class Vehiculo {
     
     @Id
-    @Column(length = 10)
+    @Column(name = "Patente", length = 10)
     private String patente;
     
-    @Column(nullable = false, length = 20)
+    @Column(name = "Marca", nullable = false, length = 20)
     private String marca;
     
-    @Column(nullable = false, length = 20)
+    @Column(name = "Modelo" , nullable = false, length = 20)
     private String modelo;
     
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column(name = "Estado", length = 20)
     private EstadoVehiculo estado = EstadoVehiculo.Activo;
     
     public enum EstadoVehiculo {

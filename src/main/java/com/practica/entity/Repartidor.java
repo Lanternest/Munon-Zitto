@@ -9,22 +9,22 @@ import jakarta.persistence.*;
 public class Repartidor {
     
     @Id
-    @Column(name = "dni_r", length = 15)
+    @Column(name = "DNI_R", length = 15)
     private String dniR;
     
-    @Column(nullable = false, length = 25)
+    @Column(name = "Nombre", nullable = false, length = 25)
     private String nombre;
     
-    @Column(nullable = false, length = 25)
+    @Column(name = "Apellido", nullable = false, length = 25)
     private String apellido;
     
-    @Column(length = 20)
+    @Column(name = "Telefono", length = 20)
     private String telefono;
     
     @Column(name = "FechaContratacion")
     private LocalDate fechaContratacion;
     
-    @Column(length = 10)
+    @Column(name = "Patente", length = 10)
     private String patente;
     
     public Repartidor() {}

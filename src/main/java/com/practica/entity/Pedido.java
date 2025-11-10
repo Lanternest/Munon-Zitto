@@ -13,23 +13,23 @@ public class Pedido {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_pedido")
+    @Column(name = "ID_pedido")
     private Integer idPedido;
     
-    @Column(nullable = false, length = 15)
+    @Column(name = "DNI", nullable = false, length = 15)
     private String dni;
     
-    @Column(name = "dni_r", length = 15)
+    @Column(name = "DNI_R", length = 15)
     private String dniR;
     
-    @Column(nullable = false)
+    @Column(name = "Fecha", nullable = false)
     private LocalDateTime fecha;
     
     @Column(name = "FechaEntrega")
     private LocalDateTime fechaEntrega;
     
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column(name = "Estado", length = 20)
     private EstadoPedido estado = EstadoPedido.Pendiente;
     
     @Column(name = "SubTotal", precision = 10, scale = 2)
@@ -44,7 +44,7 @@ public class Pedido {
     @Column(name = "DireccionEntrega", length = 100)
     private String direccionEntrega;
     
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "Observaciones", columnDefinition = "TEXT")
     private String observaciones;
     
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)

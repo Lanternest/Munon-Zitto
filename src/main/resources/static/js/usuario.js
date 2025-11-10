@@ -1,4 +1,3 @@
-// ========================================
 // FUNCIÓN PARA MOSTRAR/OCULTAR CONTRASEÑA
 // ========================================
 
@@ -17,7 +16,6 @@ function togglePassword(inputId) {
   }
 }
 
-// ========================================
 // VALIDACIÓN DEL FORMULARIO
 // ========================================
 
@@ -28,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const form = document.getElementById('formRegistro');
   
   // Escucha el evento de envío del formulario
-  form.addEventListener('submit', function(e) {
+  form.addEventListener('submit', async function(e) {
     e.preventDefault(); // Previene el envío por defecto
     
     // Obtiene los valores de los campos
@@ -39,81 +37,101 @@ document.addEventListener('DOMContentLoaded', function() {
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     
-    // ========================================
     // VALIDACIONES
     // ========================================
     
     // Valida que todos los campos estén llenos
     if (!nombre || !apellido || !telefono || !email || !password || !confirmPassword) {
-      alert('Por favor, complete todos los campos');
+      mostrarError('Por favor, complete todos los campos');
       return;
     }
     
     // Valida que el nombre tenga al menos 2 caracteres
     if (nombre.length < 2) {
-      alert('El nombre debe tener al menos 2 caracteres');
+      mostrarError('El nombre debe tener al menos 2 caracteres');
       return;
     }
     
     // Valida que el apellido tenga al menos 2 caracteres
     if (apellido.length < 2) {
-      alert('El apellido debe tener al menos 2 caracteres');
+      mostrarError('El apellido debe tener al menos 2 caracteres');
       return;
     }
     
     // Valida formato de teléfono (solo números y entre 8-15 dígitos)
     const telefonoRegex = /^[0-9]{8,15}$/;
     if (!telefonoRegex.test(telefono.replace(/[\s-]/g, ''))) {
-      alert('Por favor, ingrese un número de teléfono válido (8-15 dígitos)');
+      mostrarError('Por favor, ingrese un número de teléfono válido (8-15 dígitos)');
       return;
     }
     
     // Valida formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      alert('Por favor, ingrese un email válido');
+      mostrarError('Por favor, ingrese un email válido');
       return;
     }
     
     // Valida que la contraseña tenga al menos 6 caracteres
     if (password.length < 6) {
-      alert('La contraseña debe tener al menos 6 caracteres');
+      mostrarError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
     
     // Valida que las contraseñas coincidan
     if (password !== confirmPassword) {
-      alert('Las contraseñas no coinciden');
+      mostrarError('Las contraseñas no coinciden');
       return;
     }
     
-    // ========================================
     // SI TODAS LAS VALIDACIONES PASAN
     // ========================================
     
-    // Crea un objeto con los datos del usuario
-    const usuario = {
-      nombre: nombre,
-      apellido: apellido,
-      telefono: telefono,
-      email: email,
-      password: password
-    };
-    
+	const registroData = {
+	  dni: document.getElementById('dni').value.trim(),
+	  nombre: nombre,
+	  apellido: apellido,
+	  direccion: document.getElementById('direccion').value.trim(),
+	  telefono: telefono,
+	  email: email,
+	  contrasenia: password,
+	  codigoPostal: parseInt(document.getElementById('codigoPostal').value)
+	};
+	    
+	    try {
+	      // Deshabilitar botón mientras se procesa
+	      const btnSubmit = form.querySelector('button[type="submit"]');
+	      btnSubmit.disabled = true;
+	      btnSubmit.textContent = 'Registrando...';
+	      
+	      // Llamar al backend
+	      const response = await fetchAPI('/auth/register', {
+	        method: 'POST',
+	        body: JSON.stringify(registroData)
+	      });
+	    
     // Muestra mensaje de éxito
-    alert('¡Registro exitoso! Bienvenido ' + nombre + ' ' + apellido);
-    
-    // Aquí podrías enviar los datos a un servidor
-    console.log('Datos del usuario:', usuario);
-    
+    mostrarExito('¡Registro exitoso! Bienvenido ${nombre} ${apellido}');
+        
     // Limpia el formulario
     form.reset();
     
-    // Opcionalmente, redirige a otra página
-    // window.location.href = '/index.html';
-  });
+	// Redirigir al login o hacer auto-login
+	      setTimeout(() => {
+	        window.location.href = '/paginas/login.html';
+	      }, 2000);
+	      
+	    } catch (error) {
+	      console.error('Error en registro:', error);
+	      mostrarError(error.message || 'Error al registrar. Por favor, intente nuevamente.');
+	      
+	      // Rehabilitar botón
+	      const btnSubmit = form.querySelector('button[type="submit"]');
+	      btnSubmit.disabled = false;
+	      btnSubmit.textContent = 'Registrarme';
+	    }
+	  });
   
-  // ========================================
   // VALIDACIÓN EN TIEMPO REAL
   // ========================================
   
@@ -130,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  // ========================================
   // FORMATO AUTOMÁTICO DEL TELÉFONO
   // ========================================
   
@@ -150,10 +167,134 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// ========================================
 // FUNCIÓN PARA LIMPIAR EL FORMULARIO
 // ========================================
 
 function limpiarFormulario() {
   document.getElementById('formRegistro').reset();
+}
+
+// FUNCIONES AUXILIARES
+// ========================================
+
+function generarDNITemporal() {
+  // Generar un DNI temporal (8 dígitos)
+  // En producción, esto debería venir de un campo en el formulario
+  return Math.floor(10000000 + Math.random() * 90000000).toString();
+}
+
+function mostrarError(mensaje) {
+  const alertaHTML = `
+    <div class="alerta-flotante alerta-error" id="alertaFlotante">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; margin-right: 10px;">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+      <p>${mensaje}</p>
+    </div>
+  `;
+  
+  eliminarAlertaAnterior();
+  document.body.insertAdjacentHTML('beforeend', alertaHTML);
+  
+  setTimeout(() => {
+    const alerta = document.getElementById('alertaFlotante');
+    if (alerta) {
+      alerta.style.opacity = '0';
+      alerta.style.transform = 'translateY(-20px)';
+      setTimeout(() => alerta.remove(), 300);
+    }
+  }, 4000);
+}
+
+function mostrarExito(mensaje) {
+  const alertaHTML = `
+    <div class="alerta-flotante alerta-exito" id="alertaFlotante">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; margin-right: 10px;">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <p>${mensaje}</p>
+    </div>
+  `;
+  
+  eliminarAlertaAnterior();
+  document.body.insertAdjacentHTML('beforeend', alertaHTML);
+  
+  setTimeout(() => {
+    const alerta = document.getElementById('alertaFlotante');
+    if (alerta) {
+      alerta.style.opacity = '0';
+      alerta.style.transform = 'translateY(-20px)';
+      setTimeout(() => alerta.remove(), 300);
+    }
+  }, 4000);
+}
+
+function eliminarAlertaAnterior() {
+  const alertaAnterior = document.getElementById('alertaFlotante');
+  if (alertaAnterior) {
+    alertaAnterior.remove();
+  }
+}
+
+// ESTILOS PARA ALERTAS
+// ========================================
+
+if (!document.getElementById('estilosAlertas')) {
+  const estilos = `
+    <style id="estilosAlertas">
+      .alerta-flotante {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 10px;
+        color: white;
+        font-weight: 600;
+        z-index: 11000;
+        display: flex;
+        align-items: center;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        animation: slideInRight 0.3s ease;
+        transition: all 0.3s ease;
+      }
+      
+      .alerta-error {
+        background-color: #ff4444;
+      }
+      
+      .alerta-exito {
+        background-color: #28a745;
+      }
+      
+      .alerta-flotante p {
+        margin: 0;
+        flex: 1;
+      }
+      
+      @keyframes slideInRight {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      
+      @media (max-width: 768px) {
+        .alerta-flotante {
+          right: 10px;
+          left: 10px;
+          max-width: none;
+        }
+      }
+    </style>
+  `;
+  
+  document.head.insertAdjacentHTML('beforeend', estilos);
 }

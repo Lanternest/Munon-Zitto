@@ -11,19 +11,19 @@ public class Producto {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_productos")
+    @Column(name = "ID_productos")
     private Integer idProductos;
     
-    @Column(nullable = false, length = 50)
+    @Column(name = "Nombre", nullable = false, length = 50)
     private String nombre;
     
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "Descripcion", columnDefinition = "TEXT")
     private String descripcion;
     
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(name = "Precio", nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;
     
-    @Column(nullable = false)
+    @Column(name = "Stock", nullable = false)
     private Integer stock = 0;
     
     @Column(name = "FechaElaboracion")
@@ -33,10 +33,10 @@ public class Producto {
     private Integer diasVencimiento;
     
     @Enumerated(EnumType.STRING)
-    @Column(length = 30)
+    @Column(name = "Estado", length = 30)
     private EstadoProducto estado = EstadoProducto.Disponible;
     
-    @Column(length = 30)
+    @Column(name = "Categoria", length = 30)
     private String categoria;
     
     public enum EstadoProducto {

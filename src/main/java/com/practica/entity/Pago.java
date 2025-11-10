@@ -11,24 +11,24 @@ public class Pago {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_pago")
+    @Column(name = "ID_pago")
     private Integer idPago;
     
-    @Column(name = "id_pedido", nullable = false, unique = true)
+    @Column(name = "ID_pedido", nullable = false, unique = true)
     private Integer idPedido;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "FormaDePago", nullable = false, length = 30)
     private FormaPago formaDePago;
     
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(name = "Monto", nullable = false, precision = 10, scale = 2)
     private BigDecimal monto;
     
     @Column(name = "FechaPago")
     private LocalDateTime fechaPago;
     
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column(name = "Estado", length = 20)
     private EstadoPago estado = EstadoPago.Pendiente;
     
     @Column(name = "ComprobanteTransaccion", length = 100)

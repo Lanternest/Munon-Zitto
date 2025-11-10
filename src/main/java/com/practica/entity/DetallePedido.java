@@ -10,26 +10,26 @@ public class DetallePedido {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_detalle")
+    @Column(name = "ID_detalle")
     private Integer idDetalle;
     
     @ManyToOne
-    @JoinColumn(name = "id_pedido", nullable = false)
+    @JoinColumn(name = "ID_pedido", nullable = false)
     private Pedido pedido;
     
-    @Column(name = "id_productos", nullable = false)
+    @Column(name = "ID_productos", nullable = false)
     private Integer idProductos;
     
-    @Column(nullable = false)
+    @Column(name = "Cantidad", nullable = false)
     private Integer cantidad;
     
     @Column(name = "PrecioUnitario", nullable = false, precision = 10, scale = 2)
     private BigDecimal precioUnitario;
     
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(name = "Subtotal", nullable = false, precision = 10, scale = 2)
     private BigDecimal subtotal;
     
-    @Column(name = "id_promo")
+    @Column(name = "ID_promo")
     private Integer idPromo;
     
     public DetallePedido() {}

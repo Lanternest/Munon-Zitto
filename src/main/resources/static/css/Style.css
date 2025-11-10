@@ -19,7 +19,7 @@ body {
 
 /* Header */
 .fondo-azul {
-  background-image: url('/imagenes/fondo-celeste-encabezado.jpg');
+  background-image: url('../imagenes/fondo-celeste-encabezado.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -247,11 +247,11 @@ body {
    
 }
 .text-b{
-   display: flex;
-   flex-direction: column;
-   align-items: center;
-   justify-content: center;
-   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 .text-b h3, p {
   margin: 0;
@@ -541,7 +541,7 @@ body {
    ======================================== */
 
 .productos-banner {
-  background-image: url('/imagenes/img-producto/imagen-central.jpg');
+  background-image: url('../imagenes/img-producto/imagen-central.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

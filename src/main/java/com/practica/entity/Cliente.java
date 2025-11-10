@@ -9,22 +9,22 @@ import jakarta.persistence.*;
 public class Cliente {
     
     @Id
-    @Column(length = 15)
+    @Column(name = "DNI",length = 15)
     private String dni;
     
-    @Column(nullable = false, length = 25)
+    @Column(name = "Nombre", nullable = false, length = 25)
     private String nombre;
     
-    @Column(nullable = false, length = 25)
+    @Column(name = "Apellido",nullable = false, length = 25)
     private String apellido;
     
-    @Column(nullable = false, length = 80)
+    @Column(name = "Direccion",nullable = false, length = 80)
     private String direccion;
     
-    @Column(nullable = false, length = 20)
+    @Column(name = "Telefono",nullable = false, length = 20)
     private String telefono;
     
-    @Column(nullable = false, unique = true, length = 80)
+    @Column(name = "Email",nullable = false, unique = true, length = 80)
     private String email;
     
     @Column(name = "FechaRegistro")

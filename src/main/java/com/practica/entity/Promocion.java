@@ -11,13 +11,13 @@ public class Promocion {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_promo")
+    @Column(name = "ID_promo")
     private Integer idPromo;
     
-    @Column(nullable = false, length = 50)
+    @Column(name = "Nombre", nullable = false, length = 50)
     private String nombre;
     
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "Descripcion", columnDefinition = "TEXT")
     private String descripcion;
     
     @Column(name = "FechaInicio", nullable = false)
@@ -30,7 +30,7 @@ public class Promocion {
     private BigDecimal porcentajeDescuento;
     
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column(name = "Estado", length = 20)
     private EstadoPromocion estado = EstadoPromocion.Activa;
     
     public enum EstadoPromocion {
