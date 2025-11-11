@@ -533,9 +533,21 @@ let pedidos = [];
 
 async function cargarPedidos() {
   try {
+    const pedidosAnteriores = [...pedidos]; // Guardar estado anterior para comparar
     pedidos = await fetchAPI('/pedidos', { method: 'GET' });
     // Ordenar por fecha más reciente primero
     pedidos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    
+    // Verificar si hay cambios en los estados
+    const hayCambios = pedidos.some(p => {
+      const pedidoAnterior = pedidosAnteriores.find(pa => pa.idPedido === p.idPedido);
+      return pedidoAnterior && pedidoAnterior.estado !== p.estado;
+    });
+    
+    if (hayCambios && pedidosAnteriores.length > 0) {
+      console.log('Se detectaron cambios en los estados de los pedidos');
+    }
+    
     renderizarPedidos();
   } catch (error) {
     console.error('Error al cargar pedidos:', error);
@@ -543,12 +555,12 @@ async function cargarPedidos() {
   }
 }
 
-// Recargar pedidos automáticamente cada 30 segundos para ver cambios de estado
+// Recargar pedidos automáticamente cada 15 segundos para ver cambios de estado más rápido
 setInterval(() => {
   if (document.querySelector('.pedidos-lista-admin')) {
     cargarPedidos();
   }
-}, 30000);
+}, 15000);
 
 async function renderizarPedidos() {
   const pedidosLista = document.querySelector('.pedidos-lista-admin');
@@ -1598,6 +1610,7 @@ window.crearUsuarioRepartidor = crearUsuarioRepartidor;
 window.cerrarModalCrearUsuarioRepartidor = cerrarModalCrearUsuarioRepartidor;
 window.asignarRepartidorAPedido = asignarRepartidorAPedido;
 window.cerrarModalAsignarRepartidor = cerrarModalAsignarRepartidor;
+window.cargarPedidos = cargarPedidos;
 
 // ESTILOS ADICIONALES
 // ========================================
