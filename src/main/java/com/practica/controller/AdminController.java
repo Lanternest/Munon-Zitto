@@ -3,13 +3,16 @@ package com.practica.controller;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.practica.dao.ClienteDAO;
+import com.practica.dao.UsuarioDAO;
 import com.practica.service.ClienteService;
+import com.practica.repository.UsuarioRepository;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -18,6 +21,9 @@ public class AdminController {
     
     @Autowired
     private ClienteService clienteService;
+    
+    @Autowired
+    private UsuarioRepository usuarioRepository;
     
     // Listar todos los clientes
     @GetMapping("/clientes")
@@ -49,5 +55,20 @@ public class AdminController {
         Map<String, String> response = new HashMap<>();
         response.put("message", "Cliente eliminado exitosamente");
         return ResponseEntity.ok(response);
+    }
+    
+    // Listar todos los usuarios (para verificar cuáles repartidores tienen usuario)
+    @GetMapping("/usuarios")
+    public ResponseEntity<List<UsuarioDAO>> listarUsuarios() {
+        List<UsuarioDAO> usuarios = usuarioRepository.findAll().stream()
+            .map(u -> new UsuarioDAO(
+                u.getIdUsuario(),
+                u.getEmail(),
+                u.getRol().name(),
+                u.getDni(),
+                u.getActivo()
+            ))
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(usuarios);
     }
 }

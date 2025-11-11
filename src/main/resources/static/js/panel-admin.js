@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
   cargarEstadisticas();
   cargarClientes();
   cargarPedidos();
+  await cargarUsuarios();
   cargarRepartidores();
   cargarVehiculos();
   
@@ -600,6 +601,17 @@ async function renderizarPedidos() {
 // ========================================
 
 let repartidores = [];
+let usuarios = [];
+
+async function cargarUsuarios() {
+  try {
+    // Cargar todos los usuarios para verificar cuáles repartidores tienen usuario
+    usuarios = await fetchAPI('/admin/usuarios', { method: 'GET' }).catch(() => []);
+  } catch (error) {
+    console.error('Error al cargar usuarios:', error);
+    usuarios = [];
+  }
+}
 
 async function cargarRepartidores() {
   try {
@@ -609,6 +621,15 @@ async function cargarRepartidores() {
     console.error('Error al cargar repartidores:', error);
     mostrarMensajeAdmin('Error al cargar los repartidores', 'error');
   }
+}
+
+function tieneUsuario(dniR) {
+  return usuarios.some(u => u.dni === dniR && u.rol === 'REPARTIDOR');
+}
+
+function obtenerEmailUsuario(dniR) {
+  const usuario = usuarios.find(u => u.dni === dniR && u.rol === 'REPARTIDOR');
+  return usuario ? usuario.email : null;
 }
 
 function renderizarRepartidores() {
@@ -623,7 +644,7 @@ function renderizarRepartidores() {
   if (repartidores.length === 0) {
     tablaRepartidores.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align: center; padding: 20px; color: #666;">
+        <td colspan="7" style="text-align: center; padding: 20px; color: #666;">
           No hay repartidores registrados
         </td>
       </tr>
@@ -636,6 +657,22 @@ function renderizarRepartidores() {
       ? new Date(repartidor.fechaContratacion).toLocaleDateString('es-AR')
       : 'N/A';
     
+    const tieneUsuarioCreado = tieneUsuario(repartidor.dniR);
+    const emailUsuario = tieneUsuarioCreado ? obtenerEmailUsuario(repartidor.dniR) : null;
+    const estadoUsuario = tieneUsuarioCreado 
+      ? `<span class="stock-ok" title="${emailUsuario}">✓ Creado</span>` 
+      : `<span class="stock-bajo">Sin usuario</span>`;
+    
+    const botonUsuario = tieneUsuarioCreado
+      ? `<span style="color: #28a745; font-size: 0.9rem;">${emailUsuario}</span>`
+      : `<button class="btn-crear-usuario" onclick="crearUsuarioRepartidor('${repartidor.dniR}', '${repartidor.nombre}', '${repartidor.apellido}')" title="Crear usuario para este repartidor">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; margin-right: 4px;">
+             <line x1="12" y1="5" x2="12" y2="19"></line>
+             <line x1="5" y1="12" x2="19" y2="12"></line>
+           </svg>
+           Crear Usuario
+         </button>`;
+    
     const fila = `
       <tr>
         <td>${repartidor.dniR}</td>
@@ -643,6 +680,7 @@ function renderizarRepartidores() {
         <td>${repartidor.telefono || 'N/A'}</td>
         <td>${repartidor.patente || 'Sin asignar'}</td>
         <td>${fechaContratacion}</td>
+        <td>${botonUsuario}</td>
         <td>
           <button class="btn-editar" onclick="editarRepartidor('${repartidor.dniR}')">Editar</button>
           <button class="btn-eliminar" onclick="eliminarRepartidor('${repartidor.dniR}')">Eliminar</button>
@@ -924,6 +962,116 @@ function cerrarModalRepartidor() {
 
 function cerrarModalEditarRepartidor() {
   const modal = document.getElementById('modalEditarRepartidor');
+  if (modal) {
+    modal.remove();
+  }
+}
+
+async function crearUsuarioRepartidor(dniR, nombre, apellido) {
+  const modalHTML = `
+    <div class="modal-overlay" id="modalCrearUsuarioRepartidor">
+      <div class="modal-contenido">
+        <div class="modal-header">
+          <h2>Crear Usuario para Repartidor</h2>
+          <button class="btn-cerrar-modal" onclick="cerrarModalCrearUsuarioRepartidor()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form id="formCrearUsuarioRepartidor" class="modal-form">
+          <div class="form-group-modal">
+            <label>Repartidor:</label>
+            <input type="text" value="${nombre} ${apellido} (DNI: ${dniR})" disabled>
+            <small style="color: #666; font-size: 0.85rem;">Esta información no se puede modificar</small>
+          </div>
+          <div class="form-group-modal">
+            <label for="emailUsuarioRepartidor">Email:</label>
+            <input type="email" id="emailUsuarioRepartidor" required placeholder="repartidor@ejemplo.com">
+            <small style="color: #666; font-size: 0.85rem;">El repartidor usará este email para iniciar sesión</small>
+          </div>
+          <div class="form-group-modal">
+            <label for="contraseniaUsuarioRepartidor">Contraseña:</label>
+            <input type="password" id="contraseniaUsuarioRepartidor" required minlength="6" placeholder="Mínimo 6 caracteres">
+            <small style="color: #666; font-size: 0.85rem;">La contraseña debe tener al menos 6 caracteres</small>
+          </div>
+          <div class="form-group-modal">
+            <label for="confirmarContraseniaUsuarioRepartidor">Confirmar Contraseña:</label>
+            <input type="password" id="confirmarContraseniaUsuarioRepartidor" required minlength="6" placeholder="Repita la contraseña">
+          </div>
+          <div class="modal-botones">
+            <button type="submit" class="btn-guardar-modal">Crear Usuario</button>
+            <button type="button" class="btn-cancelar-modal" onclick="cerrarModalCrearUsuarioRepartidor()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  document.getElementById('formCrearUsuarioRepartidor').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    await guardarUsuarioRepartidor(dniR);
+  });
+}
+
+async function guardarUsuarioRepartidor(dniR) {
+  try {
+    const email = document.getElementById('emailUsuarioRepartidor').value.trim();
+    const contrasenia = document.getElementById('contraseniaUsuarioRepartidor').value;
+    const confirmarContrasenia = document.getElementById('confirmarContraseniaUsuarioRepartidor').value;
+    
+    if (!email || !contrasenia || !confirmarContrasenia) {
+      mostrarMensajeAdmin('Por favor complete todos los campos', 'error');
+      return;
+    }
+    
+    if (contrasenia.length < 6) {
+      mostrarMensajeAdmin('La contraseña debe tener al menos 6 caracteres', 'error');
+      return;
+    }
+    
+    if (contrasenia !== confirmarContrasenia) {
+      mostrarMensajeAdmin('Las contraseñas no coinciden', 'error');
+      return;
+    }
+    
+    const btnGuardar = document.querySelector('#formCrearUsuarioRepartidor .btn-guardar-modal');
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Creando...';
+    
+    await fetchAPI('/auth/repartidor/create', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: email,
+        contrasenia: contrasenia,
+        dniR: dniR
+      })
+    });
+    
+    cerrarModalCrearUsuarioRepartidor();
+    mostrarMensajeAdmin('Usuario creado correctamente. El repartidor puede iniciar sesión con su email y contraseña.', 'success');
+    
+    // Recargar usuarios y repartidores
+    await cargarUsuarios();
+    await cargarRepartidores();
+    
+  } catch (error) {
+    console.error('Error al crear usuario del repartidor:', error);
+    mostrarMensajeAdmin(error.message || 'Error al crear el usuario del repartidor', 'error');
+    
+    const btnGuardar = document.querySelector('#formCrearUsuarioRepartidor .btn-guardar-modal');
+    if (btnGuardar) {
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = 'Crear Usuario';
+    }
+  }
+}
+
+function cerrarModalCrearUsuarioRepartidor() {
+  const modal = document.getElementById('modalCrearUsuarioRepartidor');
   if (modal) {
     modal.remove();
   }
@@ -1294,6 +1442,8 @@ window.editarVehiculo = editarVehiculo;
 window.eliminarVehiculo = eliminarVehiculo;
 window.cerrarModalVehiculo = cerrarModalVehiculo;
 window.cerrarModalEditarVehiculo = cerrarModalEditarVehiculo;
+window.crearUsuarioRepartidor = crearUsuarioRepartidor;
+window.cerrarModalCrearUsuarioRepartidor = cerrarModalCrearUsuarioRepartidor;
 
 // ESTILOS ADICIONALES
 // ========================================
