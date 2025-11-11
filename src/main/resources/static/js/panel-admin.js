@@ -568,6 +568,11 @@ async function renderizarPedidos() {
     return;
   }
   
+  // Asegurarse de que los repartidores estén cargados
+  if (repartidores.length === 0) {
+    await cargarRepartidores();
+  }
+  
   // Mostrar solo los 10 más recientes
   const pedidosRecientes = pedidos.slice(0, 10);
   
@@ -591,17 +596,157 @@ async function renderizarPedidos() {
     // Mapear estados a clases CSS
     const estadoClase = pedido.estado.toLowerCase().replace('_', '-');
     
+    // Obtener información del repartidor asignado
+    const repartidorAsignado = pedido.dniR 
+      ? repartidores.find(r => r.dniR === pedido.dniR)
+      : null;
+    const nombreRepartidor = repartidorAsignado 
+      ? `${repartidorAsignado.nombre} ${repartidorAsignado.apellido}`
+      : 'Sin asignar';
+    
+    // Solo mostrar botón de asignar si el pedido está Confirmado o En_Preparacion y no tiene repartidor
+    const puedeAsignar = !pedido.dniR && (pedido.estado === 'Confirmado' || pedido.estado === 'En_Preparacion');
+    
     const pedidoItem = `
-      <div class="pedido-item-admin">
+      <div class="pedido-item-admin" data-pedido-id="${pedido.idPedido}">
         <div class="pedido-info-admin">
           <h4>Pedido #${idFormateado}</h4>
           <p>${nombreCliente} - $${parseFloat(pedido.precioTotal).toLocaleString('es-AR')}</p>
+          <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+            <strong>Repartidor:</strong> ${nombreRepartidor}
+          </p>
         </div>
-        <span class="estado ${estadoClase}">${pedido.estado.replace('_', ' ')}</span>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+          <span class="estado ${estadoClase}">${pedido.estado.replace('_', ' ')}</span>
+          ${puedeAsignar ? `
+            <button class="btn-asignar-repartidor" onclick="asignarRepartidorAPedido(${pedido.idPedido})" style="padding: 6px 12px; font-size: 0.85rem;">
+              Asignar Repartidor
+            </button>
+          ` : pedido.dniR ? `
+            <button class="btn-cambiar-repartidor" onclick="asignarRepartidorAPedido(${pedido.idPedido})" style="padding: 6px 12px; font-size: 0.85rem; background-color: #ffc107;">
+              Cambiar Repartidor
+            </button>
+          ` : ''}
+        </div>
       </div>
     `;
     pedidosLista.innerHTML += pedidoItem;
   });
+}
+
+// ASIGNAR REPARTIDOR A PEDIDO
+// ========================================
+
+async function asignarRepartidorAPedido(pedidoId) {
+  // Asegurarse de que los repartidores estén cargados
+  if (repartidores.length === 0) {
+    await cargarRepartidores();
+  }
+  
+  // Mostrar todos los repartidores disponibles
+  const repartidoresDisponibles = repartidores;
+  
+  if (repartidoresDisponibles.length === 0) {
+    mostrarMensajeAdmin('No hay repartidores disponibles', 'error');
+    return;
+  }
+  
+  // Obtener información del pedido
+  const pedido = pedidos.find(p => p.idPedido === pedidoId);
+  if (!pedido) {
+    mostrarMensajeAdmin('Pedido no encontrado', 'error');
+    return;
+  }
+  
+  const repartidorActual = pedido.dniR 
+    ? repartidores.find(r => r.dniR === pedido.dniR)
+    : null;
+  
+  const opcionesRepartidores = repartidoresDisponibles.map(r => {
+    const vehiculoInfo = r.patente ? `Vehículo: ${r.patente}` : 'Sin vehículo asignado';
+    return `<option value="${r.dniR}" ${repartidorActual && repartidorActual.dniR === r.dniR ? 'selected' : ''}>
+      ${r.nombre} ${r.apellido} - ${vehiculoInfo}
+    </option>`;
+  }).join('');
+  
+  const modalHTML = `
+    <div class="modal-overlay" id="modalAsignarRepartidor">
+      <div class="modal-contenido">
+        <div class="modal-header">
+          <h2>Asignar Repartidor al Pedido #${String(pedidoId).padStart(3, '0')}</h2>
+          <button class="btn-cerrar-modal" onclick="cerrarModalAsignarRepartidor()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form id="formAsignarRepartidor" class="modal-form">
+          <div class="form-group-modal">
+            <label for="repartidorSelect">Seleccionar Repartidor:</label>
+            <select id="repartidorSelect" required>
+              <option value="">Seleccione un repartidor</option>
+              ${opcionesRepartidores}
+            </select>
+            <small style="color: #666; font-size: 0.85rem;">Se recomienda asignar repartidores con vehículo</small>
+          </div>
+          <div class="modal-botones">
+            <button type="submit" class="btn-guardar-modal">Asignar Repartidor</button>
+            <button type="button" class="btn-cancelar-modal" onclick="cerrarModalAsignarRepartidor()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  document.getElementById('formAsignarRepartidor').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    await guardarAsignacionRepartidor(pedidoId);
+  });
+}
+
+async function guardarAsignacionRepartidor(pedidoId) {
+  try {
+    const dniR = document.getElementById('repartidorSelect').value.trim();
+    
+    if (!dniR) {
+      mostrarMensajeAdmin('Por favor seleccione un repartidor', 'error');
+      return;
+    }
+    
+    const btnGuardar = document.querySelector('#formAsignarRepartidor .btn-guardar-modal');
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Asignando...';
+    
+    await fetchAPI(`/pedidos/${pedidoId}/repartidor?dniR=${dniR}`, {
+      method: 'PATCH'
+    });
+    
+    cerrarModalAsignarRepartidor();
+    mostrarMensajeAdmin('Repartidor asignado correctamente. El pedido ahora está "En Camino"', 'success');
+    
+    // Recargar pedidos para ver el cambio
+    await cargarPedidos();
+    
+  } catch (error) {
+    console.error('Error al asignar repartidor:', error);
+    mostrarMensajeAdmin(error.message || 'Error al asignar el repartidor', 'error');
+    
+    const btnGuardar = document.querySelector('#formAsignarRepartidor .btn-guardar-modal');
+    if (btnGuardar) {
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = 'Asignar Repartidor';
+    }
+  }
+}
+
+function cerrarModalAsignarRepartidor() {
+  const modal = document.getElementById('modalAsignarRepartidor');
+  if (modal) {
+    modal.remove();
+  }
 }
 
 // GESTIÓN DE REPARTIDORES
@@ -1451,6 +1596,8 @@ window.cerrarModalVehiculo = cerrarModalVehiculo;
 window.cerrarModalEditarVehiculo = cerrarModalEditarVehiculo;
 window.crearUsuarioRepartidor = crearUsuarioRepartidor;
 window.cerrarModalCrearUsuarioRepartidor = cerrarModalCrearUsuarioRepartidor;
+window.asignarRepartidorAPedido = asignarRepartidorAPedido;
+window.cerrarModalAsignarRepartidor = cerrarModalAsignarRepartidor;
 
 // ESTILOS ADICIONALES
 // ========================================
