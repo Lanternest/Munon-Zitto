@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
   cargarEstadisticas();
   cargarClientes();
   cargarPedidos();
-  await cargarUsuarios();
+  cargarUsuarios();
   cargarRepartidores();
   cargarVehiculos();
   
@@ -542,6 +542,13 @@ async function cargarPedidos() {
     mostrarMensajeAdmin('Error al cargar los pedidos', 'error');
   }
 }
+
+// Recargar pedidos automáticamente cada 30 segundos para ver cambios de estado
+setInterval(() => {
+  if (document.querySelector('.pedidos-lista-admin')) {
+    cargarPedidos();
+  }
+}, 30000);
 
 async function renderizarPedidos() {
   const pedidosLista = document.querySelector('.pedidos-lista-admin');

@@ -1,6 +1,7 @@
 package com.practica.service.impl;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -115,7 +116,13 @@ public class PedidoServiceImpl implements PedidoService {
             .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con ID: " + id));
         
         try {
-            pedido.setEstado(Pedido.EstadoPedido.valueOf(estado));
+            Pedido.EstadoPedido nuevoEstado = Pedido.EstadoPedido.valueOf(estado);
+            pedido.setEstado(nuevoEstado);
+            
+            // Si el estado es Entregado, actualizar la fecha de entrega
+            if (nuevoEstado == Pedido.EstadoPedido.Entregado && pedido.getFechaEntrega() == null) {
+                pedido.setFechaEntrega(LocalDateTime.now());
+            }
         } catch (IllegalArgumentException e) {
             throw new BadRequestException("Estado inválido: " + estado);
         }

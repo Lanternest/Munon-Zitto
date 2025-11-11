@@ -25,21 +25,23 @@ public class RepartidorEntregasController {
     @Autowired
     private ClienteService clienteService;
     
-    // Ver pedidos asignados al repartidor (solo En_Camino)
+    // Ver pedidos asignados al repartidor (todos los estados excepto Cancelado y Entregado)
     @GetMapping("/mis-entregas/{dniR}")
     public ResponseEntity<List<Map<String, Object>>> misEntregas(@PathVariable String dniR) {
         List<PedidoDAO> todosPedidos = pedidoService.listarTodos();
         
-        // Filtrar: solo del repartidor, estado En_Camino
+        // Filtrar: solo del repartidor, excluir Cancelado y Entregado
         List<Map<String, Object>> entregas = todosPedidos.stream()
             .filter(p -> dniR.equals(p.getDniR()))
-            .filter(p -> "En_Camino".equals(p.getEstado()))
+            .filter(p -> !"Cancelado".equals(p.getEstado()) && !"Entregado".equals(p.getEstado()))
             .map(p -> {
                 Map<String, Object> entrega = new HashMap<>();
                 entrega.put("idPedido", p.getIdPedido());
                 entrega.put("direccionEntrega", p.getDireccionEntrega());
                 entrega.put("observaciones", p.getObservaciones());
                 entrega.put("precioTotal", p.getPrecioTotal());
+                entrega.put("estado", p.getEstado());
+                entrega.put("fecha", p.getFecha());
                 
                 // Obtener datos del cliente
                 try {
@@ -58,7 +60,20 @@ public class RepartidorEntregasController {
         return ResponseEntity.ok(entregas);
     }
     
-    // Marcar pedido como entregado
+    // Actualizar estado del pedido
+    @PatchMapping("/actualizar-estado/{idPedido}")
+    public ResponseEntity<PedidoDAO> actualizarEstado(@PathVariable Integer idPedido, @RequestParam String estado) {
+        PedidoDAO pedido = pedidoService.actualizarEstado(idPedido, estado);
+        
+        // Si el estado es Entregado, actualizar fechaEntrega
+        if ("Entregado".equals(estado)) {
+            // La fechaEntrega se puede actualizar en el servicio si es necesario
+        }
+        
+        return ResponseEntity.ok(pedido);
+    }
+    
+    // Marcar pedido como entregado (mantener compatibilidad)
     @PatchMapping("/entregar/{idPedido}")
     public ResponseEntity<PedidoDAO> marcarEntregado(@PathVariable Integer idPedido) {
         PedidoDAO pedido = pedidoService.actualizarEstado(idPedido, "Entregado");

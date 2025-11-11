@@ -76,10 +76,32 @@ function renderizarEntregas() {
 }
 
 function crearEntregaHTML(entrega) {
+  const estadoActual = entrega.estado || 'Pendiente';
+  const estadoTexto = estadoActual.replace('_', ' ');
+  
+  // Mapear estados a clases CSS
+  const estadoClase = estadoActual.toLowerCase().replace('_', '-');
+  const estadoColor = {
+    'pendiente': '#ffc107',
+    'confirmado': '#17a2b8',
+    'en-preparacion': '#ff9800',
+    'en-camino': '#00b4d8',
+    'entregado': '#28a745',
+    'cancelado': '#dc3545'
+  }[estadoClase] || '#666';
+  
+  // Estados disponibles según el estado actual
+  const estadosDisponibles = obtenerEstadosDisponibles(estadoActual);
+  
   return `
     <div class="entrega-item" data-pedido="${entrega.idPedido}">
       <div class="entrega-info">
-        <h3>Pedido #${entrega.idPedido.toString().padStart(3, '0')}</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h3>Pedido #${entrega.idPedido.toString().padStart(3, '0')}</h3>
+          <span class="estado-badge" style="background-color: ${estadoColor}; color: white; padding: 5px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: 600;">
+            ${estadoTexto}
+          </span>
+        </div>
         <p class="entrega-cliente" onclick="llamarCliente('${entrega.clienteTelefono}')">
           <svg class="icono-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -113,68 +135,121 @@ function crearEntregaHTML(entrega) {
         </p>
         ` : ''}
         <p class="entrega-total">
-          <strong>Total:</strong> $${entrega.precioTotal.toLocaleString('es-AR')}
+          <strong>Total:</strong> $${typeof entrega.precioTotal === 'number' ? entrega.precioTotal.toLocaleString('es-AR') : entrega.precioTotal}
         </p>
       </div>
       <div class="entrega-acciones">
-        <button class="btn-confirmar-entrega" onclick="confirmarEntrega(${entrega.idPedido})">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          Confirmar Entrega
-        </button>
+        <div class="estado-selector">
+          <label for="estado-${entrega.idPedido}" style="display: block; margin-bottom: 5px; font-size: 0.9rem; color: #666; font-weight: 600;">
+            Cambiar Estado:
+          </label>
+          <select id="estado-${entrega.idPedido}" class="select-estado" onchange="actualizarEstadoPedido(${entrega.idPedido}, this.value)">
+            ${estadosDisponibles.map(estado => 
+              `<option value="${estado}" ${estado === estadoActual ? 'selected' : ''}>${estado.replace('_', ' ')}</option>`
+            ).join('')}
+          </select>
+        </div>
       </div>
     </div>
   `;
 }
 
-// FUNCIÓN PARA CONFIRMAR ENTREGA
+function obtenerEstadosDisponibles(estadoActual) {
+  const estados = {
+    'Pendiente': ['Pendiente', 'Confirmado', 'En_Preparacion', 'En_Camino'],
+    'Confirmado': ['Confirmado', 'En_Preparacion', 'En_Camino'],
+    'En_Preparacion': ['En_Preparacion', 'En_Camino'],
+    'En_Camino': ['En_Camino', 'Entregado'],
+    'Entregado': ['Entregado'],
+    'Cancelado': ['Cancelado']
+  };
+  
+  return estados[estadoActual] || ['Pendiente', 'Confirmado', 'En_Preparacion', 'En_Camino', 'Entregado'];
+}
+
+// FUNCIÓN PARA ACTUALIZAR ESTADO DEL PEDIDO
 // ========================================
 
-async function confirmarEntrega(pedidoId) {
-  const confirmar = confirm('¿Confirmas que has entregado este pedido?');
-  
-  if (!confirmar) {
-    return;
-  }
-  
+async function actualizarEstadoPedido(pedidoId, nuevoEstado) {
   try {
     // Actualizar estado del pedido en el backend
-    await fetchAPI(`/repartidor/entregar/${pedidoId}`, {
+    await fetchAPI(`/repartidor/actualizar-estado/${pedidoId}?estado=${nuevoEstado}`, {
       method: 'PATCH'
     });
     
-    // Buscar el elemento de la entrega en el DOM
-    const entregaItem = document.querySelector(`.entrega-item[data-pedido="${pedidoId}"]`);
+    // Actualizar el estado en el array local
+    const entrega = entregasPendientes.find(e => e.idPedido === pedidoId);
+    if (entrega) {
+      entrega.estado = nuevoEstado;
+    }
     
-    if (entregaItem) {
-      // Agregar animación de salida
-      entregaItem.style.transition = 'all 0.5s ease';
-      entregaItem.style.opacity = '0';
-      entregaItem.style.transform = 'translateX(100%)';
+    // Si el estado es Entregado, remover de la lista después de un momento
+    if (nuevoEstado === 'Entregado') {
+      mostrarMensajeRepartidor('Pedido marcado como entregado', 'success');
       
-      // Eliminar después de la animación
       setTimeout(() => {
-        entregaItem.remove();
+        const entregaItem = document.querySelector(`.entrega-item[data-pedido="${pedidoId}"]`);
+        if (entregaItem) {
+          entregaItem.style.transition = 'all 0.5s ease';
+          entregaItem.style.opacity = '0';
+          entregaItem.style.transform = 'translateX(100%)';
+          
+          setTimeout(() => {
+            entregaItem.remove();
+            entregasPendientes = entregasPendientes.filter(e => e.idPedido !== pedidoId);
+            actualizarContadorEntregas();
+            verificarEntregasRestantes();
+          }, 500);
+        }
+      }, 1000);
+    } else {
+      // Actualizar la visualización del estado
+      const entregaItem = document.querySelector(`.entrega-item[data-pedido="${pedidoId}"]`);
+      if (entregaItem) {
+        const estadoBadge = entregaItem.querySelector('.estado-badge');
+        if (estadoBadge) {
+          const estadoTexto = nuevoEstado.replace('_', ' ');
+          const estadoClase = nuevoEstado.toLowerCase().replace('_', '-');
+          const estadoColor = {
+            'pendiente': '#ffc107',
+            'confirmado': '#17a2b8',
+            'en-preparacion': '#ff9800',
+            'en-camino': '#00b4d8',
+            'entregado': '#28a745',
+            'cancelado': '#dc3545'
+          }[estadoClase] || '#666';
+          
+          estadoBadge.textContent = estadoTexto;
+          estadoBadge.style.backgroundColor = estadoColor;
+        }
         
-        // Actualizar array local
-        entregasPendientes = entregasPendientes.filter(e => e.idPedido !== pedidoId);
-        
-        // Actualizar contador
-        actualizarContadorEntregas();
-        
-        // Verificar si no quedan más entregas
-        verificarEntregasRestantes();
-        
-        // Mostrar mensaje de éxito
-        mostrarMensajeRepartidor('Entrega confirmada correctamente', 'success');
-      }, 500);
+        // Actualizar el selector de estados
+        const selectEstado = entregaItem.querySelector('.select-estado');
+        if (selectEstado) {
+          const estadosDisponibles = obtenerEstadosDisponibles(nuevoEstado);
+          selectEstado.innerHTML = estadosDisponibles.map(estado => 
+            `<option value="${estado}" ${estado === nuevoEstado ? 'selected' : ''}>${estado.replace('_', ' ')}</option>`
+          ).join('');
+        }
+      }
+      
+      mostrarMensajeRepartidor(`Estado actualizado a: ${nuevoEstado.replace('_', ' ')}`, 'success');
     }
     
   } catch (error) {
-    console.error('Error al confirmar entrega:', error);
-    mostrarMensajeRepartidor(error.message || 'Error al confirmar la entrega', 'error');
+    console.error('Error al actualizar estado:', error);
+    mostrarMensajeRepartidor(error.message || 'Error al actualizar el estado del pedido', 'error');
+    
+    // Recargar entregas para restaurar el estado anterior
+    await cargarEntregas();
   }
+}
+
+// FUNCIÓN PARA CONFIRMAR ENTREGA (mantener compatibilidad)
+// ========================================
+
+async function confirmarEntrega(pedidoId) {
+  await actualizarEstadoPedido(pedidoId, 'Entregado');
 }
 
 // FUNCIÓN PARA ACTUALIZAR CONTADOR
@@ -408,6 +483,44 @@ if (!document.getElementById('estilosRepartidor')) {
         vertical-align: middle;
       }
       
+      .estado-selector {
+        margin-top: 10px;
+      }
+      
+      .select-estado {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #00b4d8;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        background-color: white;
+        color: #333;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      
+      .select-estado:hover {
+        border-color: #0096b8;
+        background-color: #f0f9fb;
+      }
+      
+      .select-estado:focus {
+        outline: none;
+        border-color: #0096b8;
+        box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.2);
+      }
+      
+      .estado-badge {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: capitalize;
+        white-space: nowrap;
+      }
+      
       @media (max-width: 768px) {
         .mensaje-flotante-repartidor {
           right: 10px;
@@ -428,6 +541,7 @@ if (!document.getElementById('estilosRepartidor')) {
 
 // Hacer funciones globales
 window.confirmarEntrega = confirmarEntrega;
+window.actualizarEstadoPedido = actualizarEstadoPedido;
 window.llamarCliente = llamarCliente;
 window.abrirEnMaps = abrirEnMaps;
 window.cargarEntregas = cargarEntregas;

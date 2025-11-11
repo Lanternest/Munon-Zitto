@@ -71,6 +71,8 @@ document.addEventListener('DOMContentLoaded', function() {
 	    
 	    // Actualizar la tabla de pedidos
 	    const tablaPedidos = document.getElementById('tablaPedidos');
+	    if (!tablaPedidos) return;
+	    
 	    tablaPedidos.innerHTML = '';
 	    
 	    if (pedidos.length === 0) {
@@ -94,6 +96,13 @@ document.addEventListener('DOMContentLoaded', function() {
 	    mostrarMensaje('Error al cargar los pedidos', 'error');
 	  }
 	}
+	
+	// Recargar pedidos automáticamente cada 30 segundos para ver cambios de estado
+	setInterval(() => {
+	  if (document.getElementById('tablaPedidos')) {
+	    cargarPedidosCliente();
+	  }
+	}, 30000);
 
 	function crearFilaPedido(pedido) {
 	  const fecha = new Date(pedido.fecha).toLocaleDateString('es-AR');
