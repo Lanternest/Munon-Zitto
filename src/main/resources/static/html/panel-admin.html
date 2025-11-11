@@ -366,6 +366,41 @@
           </div>
         </div>
 
+        <!-- Gestión de Vehículos -->
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <h2>Gestión de Vehículos</h2>
+            <button class="btn-agregar" onclick="agregarVehiculo()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Agregar Vehículo
+            </button>
+          </div>
+          <div class="tabla-container">
+            <table class="tabla-admin">
+              <thead>
+                <tr>
+                  <th>Patente</th>
+                  <th>Marca</th>
+                  <th>Modelo</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaVehiculos">
+                <!-- Los vehículos se cargarán dinámicamente desde el backend -->
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 20px; color: #666;">
+                    Cargando vehículos...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </section>
   </main>

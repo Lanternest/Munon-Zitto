@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
   cargarClientes();
   cargarPedidos();
   cargarRepartidores();
+  cargarVehiculos();
   
   console.log('Panel Administrador inicializado correctamente');
 });
@@ -652,7 +653,17 @@ function renderizarRepartidores() {
   });
 }
 
-function agregarRepartidor() {
+async function agregarRepartidor() {
+  // Asegurarse de que los vehículos estén cargados
+  if (vehiculos.length === 0) {
+    await cargarVehiculos();
+  }
+  
+  const vehiculosActivos = vehiculos.filter(v => v.estado === 'Activo');
+  const opcionesVehiculos = vehiculosActivos.map(v => 
+    `<option value="${v.patente}">${v.patente} - ${v.marca} ${v.modelo}</option>`
+  ).join('');
+  
   const modalHTML = `
     <div class="modal-overlay" id="modalAgregarRepartidor">
       <div class="modal-contenido">
@@ -683,8 +694,12 @@ function agregarRepartidor() {
             <input type="text" id="telefonoRepartidor" maxlength="20">
           </div>
           <div class="form-group-modal">
-            <label for="patenteRepartidor">Patente del Vehículo:</label>
-            <input type="text" id="patenteRepartidor" maxlength="10" placeholder="Opcional">
+            <label for="patenteRepartidor">Vehículo Asignado:</label>
+            <select id="patenteRepartidor">
+              <option value="">Sin asignar</option>
+              ${opcionesVehiculos}
+            </select>
+            <small style="color: #666; font-size: 0.85rem;">Solo se muestran vehículos activos. Puede crear uno nuevo desde la sección de Vehículos.</small>
           </div>
           <div class="modal-botones">
             <button type="submit" class="btn-guardar-modal">Agregar Repartidor</button>
@@ -709,7 +724,8 @@ async function guardarNuevoRepartidor() {
     const nombre = document.getElementById('nombreRepartidor').value.trim();
     const apellido = document.getElementById('apellidoRepartidor').value.trim();
     const telefono = document.getElementById('telefonoRepartidor').value.trim();
-    const patente = document.getElementById('patenteRepartidor').value.trim();
+    const patenteSelect = document.getElementById('patenteRepartidor');
+    const patente = patenteSelect ? patenteSelect.value.trim() : '';
     
     if (!dniR || !nombre || !apellido) {
       mostrarMensajeAdmin('Por favor complete todos los campos obligatorios', 'error');
@@ -760,6 +776,16 @@ async function editarRepartidor(dniR) {
       return;
     }
     
+    // Asegurarse de que los vehículos estén cargados
+    if (vehiculos.length === 0) {
+      await cargarVehiculos();
+    }
+    
+    const vehiculosActivos = vehiculos.filter(v => v.estado === 'Activo');
+    const opcionesVehiculos = vehiculosActivos.map(v => 
+      `<option value="${v.patente}" ${repartidor.patente === v.patente ? 'selected' : ''}>${v.patente} - ${v.marca} ${v.modelo}</option>`
+    ).join('');
+    
     const modalHTML = `
       <div class="modal-overlay" id="modalEditarRepartidor">
         <div class="modal-contenido">
@@ -791,8 +817,12 @@ async function editarRepartidor(dniR) {
               <input type="text" id="editTelefonoRepartidor" value="${repartidor.telefono || ''}" maxlength="20">
             </div>
             <div class="form-group-modal">
-              <label for="editPatenteRepartidor">Patente del Vehículo:</label>
-              <input type="text" id="editPatenteRepartidor" value="${repartidor.patente || ''}" maxlength="10" placeholder="Opcional">
+              <label for="editPatenteRepartidor">Vehículo Asignado:</label>
+              <select id="editPatenteRepartidor">
+                <option value="">Sin asignar</option>
+                ${opcionesVehiculos}
+              </select>
+              <small style="color: #666; font-size: 0.85rem;">Solo se muestran vehículos activos. Puede crear uno nuevo desde la sección de Vehículos.</small>
             </div>
             <div class="modal-botones">
               <button type="submit" class="btn-guardar-modal">Guardar Cambios</button>
@@ -821,7 +851,8 @@ async function guardarEdicionRepartidor(dniR) {
     const nombre = document.getElementById('editNombreRepartidor').value.trim();
     const apellido = document.getElementById('editApellidoRepartidor').value.trim();
     const telefono = document.getElementById('editTelefonoRepartidor').value.trim();
-    const patente = document.getElementById('editPatenteRepartidor').value.trim();
+    const patenteSelect = document.getElementById('editPatenteRepartidor');
+    const patente = patenteSelect ? patenteSelect.value.trim() : '';
     
     if (!nombre || !apellido) {
       mostrarMensajeAdmin('Por favor complete todos los campos obligatorios', 'error');
@@ -898,6 +929,295 @@ function cerrarModalEditarRepartidor() {
   }
 }
 
+// GESTIÓN DE VEHÍCULOS
+// ========================================
+
+let vehiculos = [];
+
+async function cargarVehiculos() {
+  try {
+    vehiculos = await fetchAPI('/vehiculos', { method: 'GET' });
+    renderizarVehiculos();
+  } catch (error) {
+    console.error('Error al cargar vehículos:', error);
+    mostrarMensajeAdmin('Error al cargar los vehículos', 'error');
+  }
+}
+
+function renderizarVehiculos() {
+  const tablaVehiculos = document.getElementById('tablaVehiculos');
+  if (!tablaVehiculos) {
+    console.warn('No se encontró la tabla de vehículos');
+    return;
+  }
+  
+  tablaVehiculos.innerHTML = '';
+  
+  if (vehiculos.length === 0) {
+    tablaVehiculos.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 20px; color: #666;">
+          No hay vehículos registrados
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  vehiculos.forEach(vehiculo => {
+    const estadoClass = vehiculo.estado === 'Activo' ? 'stock-ok' : 
+                       vehiculo.estado === 'En_Reparacion' ? 'stock-bajo' : 'stock-bajo';
+    const estadoTexto = vehiculo.estado === 'En_Reparacion' ? 'En Reparación' : vehiculo.estado;
+    
+    const fila = `
+      <tr>
+        <td>${vehiculo.patente}</td>
+        <td>${vehiculo.marca}</td>
+        <td>${vehiculo.modelo}</td>
+        <td><span class="${estadoClass}">${estadoTexto}</span></td>
+        <td>
+          <button class="btn-editar" onclick="editarVehiculo('${vehiculo.patente}')">Editar</button>
+          <button class="btn-eliminar" onclick="eliminarVehiculo('${vehiculo.patente}')">Eliminar</button>
+        </td>
+      </tr>
+    `;
+    tablaVehiculos.innerHTML += fila;
+  });
+}
+
+function agregarVehiculo() {
+  const modalHTML = `
+    <div class="modal-overlay" id="modalAgregarVehiculo">
+      <div class="modal-contenido">
+        <div class="modal-header">
+          <h2>Agregar Nuevo Vehículo</h2>
+          <button class="btn-cerrar-modal" onclick="cerrarModalVehiculo()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form id="formAgregarVehiculo" class="modal-form">
+          <div class="form-group-modal">
+            <label for="patenteVehiculo">Patente:</label>
+            <input type="text" id="patenteVehiculo" required maxlength="10" placeholder="ABC123">
+          </div>
+          <div class="form-group-modal">
+            <label for="marcaVehiculo">Marca:</label>
+            <input type="text" id="marcaVehiculo" required maxlength="20">
+          </div>
+          <div class="form-group-modal">
+            <label for="modeloVehiculo">Modelo:</label>
+            <input type="text" id="modeloVehiculo" required maxlength="20">
+          </div>
+          <div class="modal-botones">
+            <button type="submit" class="btn-guardar-modal">Agregar Vehículo</button>
+            <button type="button" class="btn-cancelar-modal" onclick="cerrarModalVehiculo()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  document.getElementById('formAgregarVehiculo').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    await guardarNuevoVehiculo();
+  });
+}
+
+async function guardarNuevoVehiculo() {
+  try {
+    const patente = document.getElementById('patenteVehiculo').value.trim().toUpperCase();
+    const marca = document.getElementById('marcaVehiculo').value.trim();
+    const modelo = document.getElementById('modeloVehiculo').value.trim();
+    
+    if (!patente || !marca || !modelo) {
+      mostrarMensajeAdmin('Por favor complete todos los campos obligatorios', 'error');
+      return;
+    }
+    
+    const nuevoVehiculo = {
+      patente: patente,
+      marca: marca,
+      modelo: modelo,
+      estado: 'Activo'
+    };
+    
+    const btnGuardar = document.querySelector('#formAgregarVehiculo .btn-guardar-modal');
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Guardando...';
+    
+    await fetchAPI('/vehiculos', {
+      method: 'POST',
+      body: JSON.stringify(nuevoVehiculo)
+    });
+    
+    cerrarModalVehiculo();
+    mostrarMensajeAdmin('Vehículo agregado correctamente', 'success');
+    
+    // Recargar vehículos
+    await cargarVehiculos();
+    
+  } catch (error) {
+    console.error('Error al agregar vehículo:', error);
+    mostrarMensajeAdmin(error.message || 'Error al agregar el vehículo', 'error');
+    
+    const btnGuardar = document.querySelector('#formAgregarVehiculo .btn-guardar-modal');
+    if (btnGuardar) {
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = 'Agregar Vehículo';
+    }
+  }
+}
+
+async function editarVehiculo(patente) {
+  try {
+    const vehiculo = vehiculos.find(v => v.patente === patente);
+    
+    if (!vehiculo) {
+      mostrarMensajeAdmin('Vehículo no encontrado', 'error');
+      return;
+    }
+    
+    const modalHTML = `
+      <div class="modal-overlay" id="modalEditarVehiculo">
+        <div class="modal-contenido">
+          <div class="modal-header">
+            <h2>Editar Vehículo</h2>
+            <button class="btn-cerrar-modal" onclick="cerrarModalEditarVehiculo()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <form id="formEditarVehiculo" class="modal-form">
+            <div class="form-group-modal">
+              <label for="editPatenteVehiculo">Patente:</label>
+              <input type="text" id="editPatenteVehiculo" value="${vehiculo.patente}" disabled>
+              <small style="color: #666; font-size: 0.85rem;">La patente no se puede modificar</small>
+            </div>
+            <div class="form-group-modal">
+              <label for="editMarcaVehiculo">Marca:</label>
+              <input type="text" id="editMarcaVehiculo" value="${vehiculo.marca}" required maxlength="20">
+            </div>
+            <div class="form-group-modal">
+              <label for="editModeloVehiculo">Modelo:</label>
+              <input type="text" id="editModeloVehiculo" value="${vehiculo.modelo}" required maxlength="20">
+            </div>
+            <div class="form-group-modal">
+              <label for="editEstadoVehiculo">Estado:</label>
+              <select id="editEstadoVehiculo" required>
+                <option value="Activo" ${vehiculo.estado === 'Activo' ? 'selected' : ''}>Activo</option>
+                <option value="En_Reparacion" ${vehiculo.estado === 'En_Reparacion' ? 'selected' : ''}>En Reparación</option>
+                <option value="Inactivo" ${vehiculo.estado === 'Inactivo' ? 'selected' : ''}>Inactivo</option>
+              </select>
+            </div>
+            <div class="modal-botones">
+              <button type="submit" class="btn-guardar-modal">Guardar Cambios</button>
+              <button type="button" class="btn-cancelar-modal" onclick="cerrarModalEditarVehiculo()">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    document.getElementById('formEditarVehiculo').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      await guardarEdicionVehiculo(patente);
+    });
+    
+  } catch (error) {
+    console.error('Error al editar vehículo:', error);
+    mostrarMensajeAdmin('Error al cargar el vehículo', 'error');
+  }
+}
+
+async function guardarEdicionVehiculo(patente) {
+  try {
+    const marca = document.getElementById('editMarcaVehiculo').value.trim();
+    const modelo = document.getElementById('editModeloVehiculo').value.trim();
+    const estado = document.getElementById('editEstadoVehiculo').value;
+    
+    if (!marca || !modelo) {
+      mostrarMensajeAdmin('Por favor complete todos los campos obligatorios', 'error');
+      return;
+    }
+    
+    const vehiculoActualizado = {
+      patente: patente,
+      marca: marca,
+      modelo: modelo,
+      estado: estado
+    };
+    
+    const btnGuardar = document.querySelector('#formEditarVehiculo .btn-guardar-modal');
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Guardando...';
+    
+    await fetchAPI(`/vehiculos/${patente}`, {
+      method: 'PUT',
+      body: JSON.stringify(vehiculoActualizado)
+    });
+    
+    cerrarModalEditarVehiculo();
+    mostrarMensajeAdmin('Vehículo actualizado correctamente', 'success');
+    
+    // Recargar vehículos
+    await cargarVehiculos();
+    
+  } catch (error) {
+    console.error('Error al actualizar vehículo:', error);
+    mostrarMensajeAdmin(error.message || 'Error al actualizar el vehículo', 'error');
+    
+    const btnGuardar = document.querySelector('#formEditarVehiculo .btn-guardar-modal');
+    if (btnGuardar) {
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = 'Guardar Cambios';
+    }
+  }
+}
+
+async function eliminarVehiculo(patente) {
+  if (!confirm(`¿Está seguro de que desea eliminar el vehículo con patente ${patente}?`)) {
+    return;
+  }
+  
+  try {
+    await fetchAPI(`/vehiculos/${patente}`, {
+      method: 'DELETE'
+    });
+    
+    mostrarMensajeAdmin('Vehículo eliminado correctamente', 'success');
+    
+    // Recargar vehículos
+    await cargarVehiculos();
+    
+  } catch (error) {
+    console.error('Error al eliminar vehículo:', error);
+    mostrarMensajeAdmin(error.message || 'Error al eliminar el vehículo', 'error');
+  }
+}
+
+function cerrarModalVehiculo() {
+  const modal = document.getElementById('modalAgregarVehiculo');
+  if (modal) {
+    modal.remove();
+  }
+}
+
+function cerrarModalEditarVehiculo() {
+  const modal = document.getElementById('modalEditarVehiculo');
+  if (modal) {
+    modal.remove();
+  }
+}
+
 // FUNCIÓN PARA GENERAR REPORTE
 // ========================================
 
@@ -964,6 +1284,16 @@ window.generarReporte = generarReporte;
 window.cerrarModalProducto = cerrarModalProducto;
 window.cerrarModalEditar = cerrarModalEditar;
 window.cerrarModalUsuario = cerrarModalUsuario;
+window.agregarRepartidor = agregarRepartidor;
+window.editarRepartidor = editarRepartidor;
+window.eliminarRepartidor = eliminarRepartidor;
+window.cerrarModalRepartidor = cerrarModalRepartidor;
+window.cerrarModalEditarRepartidor = cerrarModalEditarRepartidor;
+window.agregarVehiculo = agregarVehiculo;
+window.editarVehiculo = editarVehiculo;
+window.eliminarVehiculo = eliminarVehiculo;
+window.cerrarModalVehiculo = cerrarModalVehiculo;
+window.cerrarModalEditarVehiculo = cerrarModalEditarVehiculo;
 
 // ESTILOS ADICIONALES
 // ========================================
