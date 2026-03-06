@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
   cargarEstadisticas();
   cargarClientes();
   cargarPedidos();
+  cargarFacturacion();
   cargarUsuarios();
   cargarRepartidores();
   cargarVehiculos();
@@ -119,6 +120,83 @@ async function cargarEstadisticas() {
     
   } catch (error) {
     console.error('Error al cargar estadísticas:', error);
+  }
+}
+
+// CARGAR FACTURACIÓN (HOY / SEMANA / MES)
+// ========================================
+
+async function cargarFacturacion() {
+  try {
+    const pedidos = await fetchAPI('/pedidos', { method: 'GET' });
+
+    // Usamos como fecha de venta la fecha de entrega si existe y el pedido está Entregado.
+    // Si se quisiera contar al momento de confirmar el pedido, habría que cambiar la condición.
+    const pedidosEntregados = pedidos.filter(p => p.estado === 'Entregado' && p.fechaEntrega);
+
+    const hoy = new Date();
+    const inicioDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+
+    // Inicio de semana (lunes) según calendario típico
+    const diaSemana = hoy.getDay(); // 0 = domingo, 1 = lunes, ...
+    const offsetLunes = (diaSemana === 0 ? -6 : 1 - diaSemana);
+    const inicioSemana = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + offsetLunes);
+    inicioSemana.setHours(0, 0, 0, 0);
+
+    // Inicio de mes
+    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    inicioMes.setHours(0, 0, 0, 0);
+
+    let totalHoy = 0;
+    let pedidosHoy = 0;
+    let totalSemana = 0;
+    let pedidosSemana = 0;
+    let totalMes = 0;
+    let pedidosMes = 0;
+
+    pedidosEntregados.forEach(p => {
+      const fechaVenta = new Date(p.fechaEntrega);
+      const soloFechaVenta = new Date(fechaVenta.getFullYear(), fechaVenta.getMonth(), fechaVenta.getDate());
+
+      const precio = parseFloat(p.precioTotal || 0);
+
+      // Hoy
+      if (soloFechaVenta.getTime() === inicioDia.getTime()) {
+        pedidosHoy += 1;
+        totalHoy += precio;
+      }
+
+      // Semana
+      if (soloFechaVenta >= inicioSemana && soloFechaVenta <= hoy) {
+        pedidosSemana += 1;
+        totalSemana += precio;
+      }
+
+      // Mes
+      if (soloFechaVenta >= inicioMes && soloFechaVenta <= hoy) {
+        pedidosMes += 1;
+        totalMes += precio;
+      }
+    });
+
+    const hoyMontoEl = document.getElementById('facturacionHoyMonto');
+    const hoyPedidosEl = document.getElementById('facturacionHoyPedidos');
+    const semanaMontoEl = document.getElementById('facturacionSemanaMonto');
+    const semanaPedidosEl = document.getElementById('facturacionSemanaPedidos');
+    const mesMontoEl = document.getElementById('facturacionMesMonto');
+    const mesPedidosEl = document.getElementById('facturacionMesPedidos');
+
+    if (hoyMontoEl) hoyMontoEl.textContent = `$${totalHoy.toLocaleString('es-AR')}`;
+    if (hoyPedidosEl) hoyPedidosEl.textContent = `${pedidosHoy} pedido${pedidosHoy !== 1 ? 's' : ''}`;
+
+    if (semanaMontoEl) semanaMontoEl.textContent = `$${totalSemana.toLocaleString('es-AR')}`;
+    if (semanaPedidosEl) semanaPedidosEl.textContent = `${pedidosSemana} pedido${pedidosSemana !== 1 ? 's' : ''}`;
+
+    if (mesMontoEl) mesMontoEl.textContent = `$${totalMes.toLocaleString('es-AR')}`;
+    if (mesPedidosEl) mesPedidosEl.textContent = `${pedidosMes} pedido${pedidosMes !== 1 ? 's' : ''}`;
+
+  } catch (error) {
+    console.error('Error al cargar facturación:', error);
   }
 }
 
