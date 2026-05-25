@@ -13,9 +13,13 @@ function togglePassword(inputId) {
 
 document.addEventListener('DOMContentLoaded', function() {
   // Si ya está autenticado, redirigir según el rol
-  if (estaAutenticado()) {
+  if (estaAutenticado() && localStorage.getItem('rol')) {
     redirigirSegunRol();
     return;
+  }
+
+  if (estaAutenticado()) {
+    cerrarSesionSinRedirigir();
   }
   
   const form = document.getElementById('formLogin');
@@ -89,6 +93,19 @@ function redirigirSegunRol() {
     default:
       window.location.href = '../html/index.html';
   }
+}
+
+function cerrarSesionSinRedirigir() {
+  if (typeof limpiarSesionActual === 'function') {
+    limpiarSesionActual();
+    return;
+  }
+
+  localStorage.removeItem('token');
+  localStorage.removeItem('rol');
+  localStorage.removeItem('email');
+  localStorage.removeItem('dni');
+  sessionStorage.clear();
 }
 
 function mostrarError(mensaje) {

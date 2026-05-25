@@ -22,12 +22,10 @@ function togglePassword(inputId) {
 // Espera a que el DOM esté completamente cargado
 document.addEventListener('DOMContentLoaded', function() {
   
-  // Limpiar cualquier sesión anterior al cargar la página de registro
-  // Esto asegura que no se muestren datos de un usuario anterior
-  localStorage.removeItem('token');
-  localStorage.removeItem('rol');
-  localStorage.removeItem('email');
-  localStorage.removeItem('dni');
+  // Si ya existe una sesion activa, pedir confirmacion antes de registrarse
+  if (localStorage.getItem('token')) {
+    mostrarModalSesionActiva();
+  }
   
   // Obtiene el formulario
   const form = document.getElementById('formRegistro');
@@ -35,6 +33,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Escucha el evento de envío del formulario
   form.addEventListener('submit', async function(e) {
     e.preventDefault(); // Previene el envío por defecto
+
+    if (localStorage.getItem('token')) {
+      mostrarError('Debe cerrar la sesión actual antes de registrarse');
+      return;
+    }
     
     // Obtiene los valores de los campos
     const nombre = document.getElementById('nombre').value.trim();
@@ -123,11 +126,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Limpia el formulario
     form.reset();
     
-    // Limpiar cualquier sesión anterior antes de redirigir
-    localStorage.removeItem('token');
-    localStorage.removeItem('rol');
-    localStorage.removeItem('email');
-    localStorage.removeItem('dni');
+    // Limpiar cualquier sesion anterior antes de redirigir
+    limpiarSesionRegistro();
     
 	// Redirigir al login
 	      setTimeout(() => {
@@ -179,6 +179,49 @@ document.addEventListener('DOMContentLoaded', function() {
     e.target.value = value;
   });
 });
+
+function limpiarSesionRegistro() {
+  if (typeof limpiarSesionActual === 'function') {
+    limpiarSesionActual();
+    return;
+  }
+
+  localStorage.removeItem('token');
+  localStorage.removeItem('rol');
+  localStorage.removeItem('email');
+  localStorage.removeItem('dni');
+  sessionStorage.clear();
+}
+
+function mostrarModalSesionActiva() {
+  const modalHTML = `
+    <div class="modal-overlay-sesion" id="modalSesionActiva">
+      <div class="modal-sesion-contenido">
+        <h2>Sesión activa</h2>
+        <p>Ya existe una sesión activa. ¿Deseas cerrar la sesión actual para registrarte?</p>
+        <div class="modal-sesion-botones">
+          <button type="button" class="btn-sesion-confirmar" id="btnConfirmarCerrarSesion">Sí</button>
+          <button type="button" class="btn-sesion-cancelar" id="btnCancelarCerrarSesion">No</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+  document.getElementById('btnConfirmarCerrarSesion').addEventListener('click', function() {
+    limpiarSesionRegistro();
+    document.getElementById('modalSesionActiva').remove();
+  });
+
+  document.getElementById('btnCancelarCerrarSesion').addEventListener('click', function() {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = '../html/index.html';
+    }
+  });
+}
 
 // FUNCIÓN PARA LIMPIAR EL FORMULARIO
 // ========================================
@@ -286,6 +329,68 @@ if (!document.getElementById('estilosAlertas')) {
       .alerta-flotante p {
         margin: 0;
         flex: 1;
+      }
+
+      .modal-overlay-sesion {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 12000;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      .modal-sesion-contenido {
+        background-color: white;
+        border-radius: 12px;
+        max-width: 460px;
+        width: 100%;
+        padding: 28px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        text-align: center;
+      }
+
+      .modal-sesion-contenido h2 {
+        color: #333;
+        margin: 0 0 12px;
+      }
+
+      .modal-sesion-contenido p {
+        color: #555;
+        margin: 0 0 24px;
+        line-height: 1.5;
+      }
+
+      .modal-sesion-botones {
+        display: flex;
+        gap: 12px;
+      }
+
+      .btn-sesion-confirmar,
+      .btn-sesion-cancelar {
+        flex: 1;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 16px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 1rem;
+      }
+
+      .btn-sesion-confirmar {
+        background-color: #00b4d8;
+        color: white;
+      }
+
+      .btn-sesion-cancelar {
+        background-color: #e0e0e0;
+        color: #333;
       }
       
       @keyframes slideInRight {

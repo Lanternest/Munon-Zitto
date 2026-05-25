@@ -82,12 +82,17 @@ function guardarSesion(loginResponse) {
   localStorage.setItem('dni', loginResponse.dni || '');
 }
 
-function cerrarSesion() {
+function limpiarSesionActual() {
   localStorage.removeItem('token');
   localStorage.removeItem('rol');
   localStorage.removeItem('email');
   localStorage.removeItem('dni');
-  window.location.href = '/index.html';
+  sessionStorage.clear();
+}
+
+function cerrarSesion() {
+  limpiarSesionActual();
+  window.location.href = '../html/login.html';
 }
 
 function obtenerSesion() {
@@ -101,6 +106,37 @@ function obtenerSesion() {
 
 function estaAutenticado() {
   return !!localStorage.getItem('token');
+}
+
+function agregarBotonCerrarSesion() {
+  if (!estaAutenticado() || document.getElementById('btnCerrarSesionNav')) {
+    return;
+  }
+
+  const navPrincipal = document.querySelector('.fondo-marron');
+  if (!navPrincipal) {
+    return;
+  }
+
+  const botonCerrarSesion = document.createElement('button');
+  botonCerrarSesion.type = 'button';
+  botonCerrarSesion.id = 'btnCerrarSesionNav';
+  botonCerrarSesion.className = 'a_local btn-cerrar-sesion-nav';
+  botonCerrarSesion.title = 'Cerrar sesión';
+  botonCerrarSesion.setAttribute('aria-label', 'Cerrar sesión');
+  botonCerrarSesion.innerHTML = `
+    <span class="icono-cerrar-sesion" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+    </span>
+    <h1>Cerrar sesión</h1>
+  `;
+  botonCerrarSesion.addEventListener('click', cerrarSesion);
+
+  navPrincipal.appendChild(botonCerrarSesion);
 }
 
 // VERIFICACIÓN DE ROLES
@@ -125,6 +161,74 @@ window.API_CONFIG = API_CONFIG;
 window.fetchAPI = fetchAPI;
 window.guardarSesion = guardarSesion;
 window.cerrarSesion = cerrarSesion;
+window.limpiarSesionActual = limpiarSesionActual;
 window.obtenerSesion = obtenerSesion;
 window.estaAutenticado = estaAutenticado;
 window.verificarRol = verificarRol;
+
+document.addEventListener('DOMContentLoaded', agregarBotonCerrarSesion);
+
+if (!document.getElementById('estilosSesion')) {
+  const estilos = `
+    <style id="estilosSesion">
+      .btn-cerrar-sesion-nav {
+        border: none;
+        font-family: inherit;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.1);
+        color: aliceblue;
+        min-height: 70px;
+        padding: 0 18px;
+        border-left: 1px solid rgba(255, 255, 255, 0.18);
+        transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+      }
+
+      .btn-cerrar-sesion-nav .icono-cerrar-sesion {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: inherit;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .btn-cerrar-sesion-nav svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .btn-cerrar-sesion-nav:hover {
+        transform: translateY(-3px);
+        background-color: rgba(255, 255, 255, 0.18);
+        color: #00b4d8;
+      }
+
+      .btn-cerrar-sesion-nav h1 {
+        color: inherit;
+      }
+
+      @media (max-width: 768px) {
+        .btn-cerrar-sesion-nav {
+          flex: 0 0 18%;
+          flex-direction: column;
+          min-height: auto;
+          padding: 2%;
+        }
+
+        .btn-cerrar-sesion-nav .icono-cerrar-sesion {
+          width: 28px;
+          height: 28px;
+        }
+
+        .btn-cerrar-sesion-nav svg {
+          width: 18px;
+          height: 18px;
+        }
+      }
+    </style>
+  `;
+
+  document.head.insertAdjacentHTML('beforeend', estilos);
+}

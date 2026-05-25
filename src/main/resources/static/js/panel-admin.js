@@ -106,17 +106,13 @@ async function cargarEstadisticas() {
     
     // Cargar pedidos
     const pedidos = await fetchAPI('/pedidos', { method: 'GET' });
-    const pedidosHoy = pedidos.filter(p => {
-      const fecha = new Date(p.fecha);
-      const hoy = new Date();
-      return fecha.toDateString() === hoy.toDateString();
-    });
+    const pedidosHoy = obtenerPedidosEntregadosEnRango(pedidos, obtenerRangosFacturacion().hoy);
     
     document.querySelector('.stat-card:nth-child(1) h3').textContent = pedidosHoy.length;
     
     // Calcular ventas del día
-    const ventasHoy = pedidosHoy.reduce((sum, p) => sum + parseFloat(p.precioTotal), 0);
-    document.querySelector('.stat-card:nth-child(2) h3').textContent = `$${ventasHoy.toLocaleString('es-AR')}`;
+    const ventasHoy = pedidosHoy.reduce((sum, p) => sum + Number(p.precioTotal || 0), 0);
+    document.querySelector('.stat-card:nth-child(2) h3').textContent = formatearMoneda(ventasHoy);
     
   } catch (error) {
     console.error('Error al cargar estadísticas:', error);
@@ -242,10 +238,12 @@ function agregarProducto() {
             <input type="text" id="categoriaProducto" placeholder="Ej: Panadería" required>
           </div>
           <div class="form-group-modal">
-            <label for="imagenProducto">URL de la Imagen:</label>
-            <input type="text" id="imagenProducto" placeholder="Ej: ../imagenes/img-producto/factura-tarjeta.jpg">
+            <label for="archivoImagenProducto">Imagen del Producto:</label>
+            <input type="hidden" id="imagenProducto">
+            <input type="file" id="archivoImagenProducto" accept="image/*" class="input-imagen-producto">
+            <div class="preview-imagen-producto" id="previewImagenProducto"></div>
             <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 5px;">
-              Deje vacío para usar imagen por defecto
+              Seleccione una imagen JPG, PNG o WebP desde su PC. Si lo deja vacío, se usará la imagen por defecto.
             </small>
           </div>
           <div class="modal-botones">
@@ -258,6 +256,7 @@ function agregarProducto() {
   `;
   
   document.body.insertAdjacentHTML('beforeend', modalHTML);
+  prepararInputImagenProducto('archivoImagenProducto', 'previewImagenProducto');
   
   document.getElementById('formAgregarProducto').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -273,7 +272,8 @@ async function guardarNuevoProducto() {
     const precio = parseFloat(document.getElementById('precioProducto').value);
     const diasVencimiento = parseInt(document.getElementById('diasVencimiento').value);
     const categoria = document.getElementById('categoriaProducto').value.trim();
-    const imagenUrl = document.getElementById('imagenProducto').value.trim() || null;
+    let imagenUrl = document.getElementById('imagenProducto').value.trim() || null;
+    imagenUrl = await obtenerImagenProducto(imagenUrl, 'archivoImagenProducto');
     
     if (!nombre || !descripcion || isNaN(stock) || isNaN(precio) || isNaN(diasVencimiento) || !categoria) {
       mostrarMensajeAdmin('Por favor, complete todos los campos correctamente', 'error');
@@ -326,6 +326,90 @@ function cerrarModalProducto() {
   }
 }
 
+function prepararInputImagenProducto(inputId, previewId) {
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+
+  if (!input || !preview) {
+    return;
+  }
+
+  input.addEventListener('change', function() {
+    const archivo = input.files && input.files[0];
+    preview.innerHTML = '';
+
+    if (!archivo) {
+      return;
+    }
+
+    if (!archivo.type.startsWith('image/')) {
+      mostrarMensajeAdmin('El archivo seleccionado debe ser una imagen', 'error');
+      input.value = '';
+      return;
+    }
+
+    const extensionesPermitidas = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!extensionesPermitidas.includes(archivo.type)) {
+      mostrarMensajeAdmin('Formato no permitido. Use JPG, PNG o WebP', 'error');
+      input.value = '';
+      return;
+    }
+
+    if (archivo.size > 5 * 1024 * 1024) {
+      mostrarMensajeAdmin('La imagen no debe superar los 5 MB', 'error');
+      input.value = '';
+      return;
+    }
+
+    const urlPreview = URL.createObjectURL(archivo);
+    preview.innerHTML = `<img src="${urlPreview}" alt="Vista previa de la imagen">`;
+  });
+}
+
+async function obtenerImagenProducto(imagenUrlActual, inputId) {
+  const input = document.getElementById(inputId);
+  const archivo = input && input.files ? input.files[0] : null;
+
+  if (!archivo) {
+    return imagenUrlActual;
+  }
+
+  const extensionesPermitidas = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!extensionesPermitidas.includes(archivo.type)) {
+    throw new Error('Formato de imagen no permitido. Use JPG, PNG o WebP');
+  }
+
+  if (archivo.size > 5 * 1024 * 1024) {
+    throw new Error('La imagen no debe superar los 5 MB');
+  }
+
+  const formData = new FormData();
+  formData.append('imagen', archivo);
+
+  const token = localStorage.getItem('token');
+  const headers = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_CONFIG.BASE_URL}/productos/upload-imagen`, {
+    method: 'POST',
+    headers: headers,
+    body: formData
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    if (response.status === 405 || errorData.details === 'HttpRequestMethodNotSupportedException') {
+      throw new Error('La API debe reiniciarse para activar la carga de imágenes');
+    }
+    throw new Error(errorData.error || errorData.message || 'Error al subir la imagen');
+  }
+
+  const data = await response.json();
+  return data.imagenUrl || imagenUrlActual;
+}
+
 // FUNCIÓN PARA EDITAR PRODUCTO
 // ========================================
 
@@ -376,10 +460,14 @@ async function editarProducto(productoId) {
               <input type="text" id="editCategoriaProducto" value="${producto.categoria || ''}" required>
             </div>
             <div class="form-group-modal">
-              <label for="editImagenProducto">URL de la Imagen:</label>
-              <input type="text" id="editImagenProducto" value="${producto.imagenUrl || ''}" placeholder="Ej: ../imagenes/img-producto/factura-tarjeta.jpg">
+              <label for="editArchivoImagenProducto">Imagen del Producto:</label>
+              <input type="hidden" id="editImagenProducto" value="${producto.imagenUrl || ''}">
+              <input type="file" id="editArchivoImagenProducto" accept="image/*" class="input-imagen-producto">
+              <div class="preview-imagen-producto" id="editPreviewImagenProducto">
+                ${producto.imagenUrl ? `<img src="${producto.imagenUrl}" alt="${producto.nombre}">` : ''}
+              </div>
               <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 5px;">
-                Deje vacío para usar imagen por defecto
+                Seleccione una nueva imagen solo si desea reemplazar la actual.
               </small>
             </div>
             <div class="modal-botones">
@@ -392,6 +480,7 @@ async function editarProducto(productoId) {
     `;
     
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+    prepararInputImagenProducto('editArchivoImagenProducto', 'editPreviewImagenProducto');
     
     document.getElementById('formEditarProducto').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -412,7 +501,8 @@ async function guardarEdicionProducto(productoId) {
     const precio = parseFloat(document.getElementById('editPrecioProducto').value);
     const diasVencimiento = parseInt(document.getElementById('editDiasVencimiento').value);
     const categoria = document.getElementById('editCategoriaProducto').value.trim();
-    const imagenUrl = document.getElementById('editImagenProducto').value.trim() || null;
+    let imagenUrl = document.getElementById('editImagenProducto').value.trim() || null;
+    imagenUrl = await obtenerImagenProducto(imagenUrl, 'editArchivoImagenProducto');
     
     if (!nombre || !descripcion || isNaN(stock) || isNaN(precio) || isNaN(diasVencimiento) || !categoria) {
       mostrarMensajeAdmin('Por favor, complete todos los campos correctamente', 'error');
@@ -819,6 +909,7 @@ async function guardarAsignacionRepartidor(pedidoId) {
     
     // Recargar pedidos para ver el cambio
     await cargarPedidos();
+    await cargarFacturacion();
     
   } catch (error) {
     console.error('Error al asignar repartidor:', error);
@@ -1608,6 +1699,98 @@ function cerrarModalEditarVehiculo() {
   }
 }
 
+function obtenerRangosFacturacion() {
+  const ahora = new Date();
+  const inicioHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+  const finHoy = new Date(inicioHoy);
+  finHoy.setDate(finHoy.getDate() + 1);
+
+  const diaSemana = inicioHoy.getDay();
+  const offsetLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
+  const inicioSemana = new Date(inicioHoy);
+  inicioSemana.setDate(inicioSemana.getDate() + offsetLunes);
+
+  return {
+    hoy: { inicio: inicioHoy, fin: finHoy },
+    semana: { inicio: inicioSemana, fin: finHoy },
+    mes: { inicio: new Date(ahora.getFullYear(), ahora.getMonth(), 1), fin: finHoy },
+    anio: { inicio: new Date(ahora.getFullYear(), 0, 1), fin: finHoy }
+  };
+}
+
+function obtenerFechaVenta(pedido) {
+  const fechaBase = pedido.fechaEntrega || pedido.fecha;
+  if (!fechaBase) {
+    return null;
+  }
+
+  if (Array.isArray(fechaBase)) {
+    return new Date(
+      fechaBase[0],
+      (fechaBase[1] || 1) - 1,
+      fechaBase[2] || 1,
+      fechaBase[3] || 0,
+      fechaBase[4] || 0,
+      fechaBase[5] || 0
+    );
+  }
+
+  return new Date(fechaBase);
+}
+
+function esPedidoEntregado(pedido) {
+  return String(pedido.estado || '').toLowerCase() === 'entregado';
+}
+
+function estaEnRango(fecha, rango) {
+  return fecha && fecha >= rango.inicio && fecha < rango.fin;
+}
+
+function obtenerPedidosEntregadosEnRango(pedidos, rango) {
+  return pedidos.filter(pedido => esPedidoEntregado(pedido) && estaEnRango(obtenerFechaVenta(pedido), rango));
+}
+
+function calcularResumenFacturacion(pedidos, rango) {
+  const pedidosFiltrados = obtenerPedidosEntregadosEnRango(pedidos, rango);
+  const total = pedidosFiltrados.reduce((sum, pedido) => sum + Number(pedido.precioTotal || 0), 0);
+
+  return {
+    cantidad: pedidosFiltrados.length,
+    total: total
+  };
+}
+
+function formatearMoneda(valor) {
+  return valor.toLocaleString('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0
+  });
+}
+
+function formatearCantidadPedidos(cantidad) {
+  return `${cantidad} pedido${cantidad !== 1 ? 's' : ''}`;
+}
+
+async function cargarFacturacion() {
+  try {
+    const pedidos = await fetchAPI('/pedidos', { method: 'GET' });
+    const rangos = obtenerRangosFacturacion();
+    const resumenHoy = calcularResumenFacturacion(pedidos, rangos.hoy);
+    const resumenSemana = calcularResumenFacturacion(pedidos, rangos.semana);
+    const resumenMes = calcularResumenFacturacion(pedidos, rangos.mes);
+
+    document.getElementById('facturacionHoyMonto').textContent = formatearMoneda(resumenHoy.total);
+    document.getElementById('facturacionHoyPedidos').textContent = formatearCantidadPedidos(resumenHoy.cantidad);
+    document.getElementById('facturacionSemanaMonto').textContent = formatearMoneda(resumenSemana.total);
+    document.getElementById('facturacionSemanaPedidos').textContent = formatearCantidadPedidos(resumenSemana.cantidad);
+    document.getElementById('facturacionMesMonto').textContent = formatearMoneda(resumenMes.total);
+    document.getElementById('facturacionMesPedidos').textContent = formatearCantidadPedidos(resumenMes.cantidad);
+  } catch (error) {
+    console.error('Error al cargar facturación:', error);
+  }
+}
+
 // FUNCIÓN PARA GENERAR REPORTE
 // ========================================
 
@@ -1617,10 +1800,10 @@ async function generarReporte() {
   try {
     const pedidos = await fetchAPI('/pedidos', { method: 'GET' });
     const fecha = new Date().toLocaleDateString('es-AR');
-    const nombreArchivo = `reporte_${fecha.replace(/\//g, '-')}.json`;
+    const nombreArchivo = `reporte_ventas_${fecha.replace(/\//g, '-')}.xls`;
     
-    // Crear blob y descargar
-    const blob = new Blob([JSON.stringify(pedidos, null, 2)], { type: 'application/json' });
+    const contenido = generarExcelReporte(pedidos, fecha);
+    const blob = new Blob([contenido], { type: 'application/vnd.ms-excel;charset=utf-8' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1636,6 +1819,73 @@ async function generarReporte() {
     console.error('Error al generar reporte:', error);
     mostrarMensajeAdmin('Error al generar el reporte', 'error');
   }
+}
+
+function generarExcelReporte(pedidos, fecha) {
+  const rangos = obtenerRangosFacturacion();
+  const resumenHoy = calcularResumenFacturacion(pedidos, rangos.hoy);
+  const resumenSemana = calcularResumenFacturacion(pedidos, rangos.semana);
+  const resumenMes = calcularResumenFacturacion(pedidos, rangos.mes);
+  const resumenAnio = calcularResumenFacturacion(pedidos, rangos.anio);
+
+  const filasPedidos = pedidos.map(pedido => `
+    <tr>
+      <td>${pedido.idPedido || ''}</td>
+      <td>${pedido.dni || ''}</td>
+      <td>${pedido.estado || ''}</td>
+      <td>${formatearFechaReporte(pedido.fecha)}</td>
+      <td>${formatearFechaReporte(pedido.fechaEntrega)}</td>
+      <td>${pedido.dniR || ''}</td>
+      <td>${Number(pedido.precioTotal || 0).toFixed(2)}</td>
+      <td>${pedido.direccionEntrega || ''}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; }
+          h1 { color: #0096b8; }
+          table { border-collapse: collapse; width: 100%; }
+          th { background-color: #00b4d8; color: white; }
+          th, td { border: 1px solid #d9d9d9; padding: 8px; }
+          .resumen th { background-color: #d56f00; }
+        </style>
+      </head>
+      <body>
+        <h1>Reporte de ventas - Muñon Zitto</h1>
+        <p>Generado el ${fecha}</p>
+        <table class="resumen">
+          <tr><th>Periodo</th><th>Pedidos</th><th>Total</th></tr>
+          <tr><td>Hoy</td><td>${resumenHoy.cantidad}</td><td>${resumenHoy.total.toFixed(2)}</td></tr>
+          <tr><td>Semana</td><td>${resumenSemana.cantidad}</td><td>${resumenSemana.total.toFixed(2)}</td></tr>
+          <tr><td>Mes</td><td>${resumenMes.cantidad}</td><td>${resumenMes.total.toFixed(2)}</td></tr>
+          <tr><td>Año</td><td>${resumenAnio.cantidad}</td><td>${resumenAnio.total.toFixed(2)}</td></tr>
+        </table>
+        <br>
+        <table>
+          <tr>
+            <th>Pedido</th>
+            <th>DNI Cliente</th>
+            <th>Estado</th>
+            <th>Fecha Pedido</th>
+            <th>Fecha Entrega</th>
+            <th>Repartidor</th>
+            <th>Total</th>
+            <th>Dirección</th>
+          </tr>
+          ${filasPedidos}
+        </table>
+      </body>
+    </html>
+  `;
+}
+
+function formatearFechaReporte(fecha) {
+  const fechaVenta = obtenerFechaVenta({ fecha: fecha });
+  return fechaVenta ? fechaVenta.toLocaleString('es-AR') : '';
 }
 
 // FUNCIÓN PARA MOSTRAR MENSAJES
@@ -1762,6 +2012,33 @@ if (!document.getElementById('estilosAdmin')) {
       
       .mensaje-info {
         background-color: #00b4d8;
+      }
+
+      .input-imagen-producto {
+        margin-top: 10px;
+        background-color: #f9f9f9;
+      }
+
+      .preview-imagen-producto {
+        margin-top: 10px;
+        min-height: 0;
+      }
+
+      .preview-imagen-producto img {
+        width: 100%;
+        max-height: 180px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 2px solid #e0e0e0;
+      }
+
+      .facturacion-item {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .facturacion-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 18px rgba(0, 150, 184, 0.25);
       }
       
       @keyframes slideInRight {
